@@ -143,6 +143,7 @@
   <button onclick="showPage('realmcp',this)">RealMCP — Server/Client</button>
   <button onclick="showPage('diagrams',this)">Diagrams</button>
   <button onclick="showPage('api',this)">API Reference</button>
+  <button onclick="showPage('aifaq',this)">AI FAQ</button>
 </nav>
 
 <!-- NEW QUERY -->
@@ -1725,6 +1726,99 @@ curl -X POST http://localhost:8080/api/v1/support/query \
 
 <span class="highlight"># Health check</span>
 curl http://localhost:8080/api/v1/support/health-check | python3 -m json.tool
+    </div>
+  </div>
+</div>
+
+<!-- AI FAQ -->
+<div class="page" id="page-aifaq">
+  <div class="card">
+    <h2>AI Ecosystem — Tool &amp; Framework FAQ</h2>
+
+    <div style="background:#0d1117;border:1px solid #553c9a;border-radius:8px;padding:18px;margin-bottom:20px">
+      <div style="font-size:0.75rem;font-weight:700;color:#b794f4;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">CrewAI</div>
+      <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
+        A framework for building <span class="highlight">multi-agent AI systems</span> where agents collaborate like a crew.
+        You define roles (Researcher, Writer, Analyst), assign tasks, and agents work together — each with its own tools, memory,
+        and goals. Good for automating complex workflows that need multiple specialized agents.
+      </p>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:18px;margin-bottom:20px">
+      <div style="font-size:0.75rem;font-weight:700;color:#7f9cf5;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">AutoGen</div>
+      <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
+        Microsoft's framework for <span class="highlight">conversational multi-agent orchestration</span>. Agents talk to each other
+        to solve problems — e.g., a Coder agent writes code, a Critic agent reviews it, they iterate. More flexible and
+        "chat-first" than CrewAI. Supports human-in-the-loop workflows.
+      </p>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #276749;border-radius:8px;padding:18px;margin-bottom:20px">
+      <div style="font-size:0.75rem;font-weight:700;color:#68d391;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">LangSmith</div>
+      <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
+        LangChain's <span class="highlight">observability and debugging platform</span> for LLM apps. Logs every prompt, chain step,
+        tool call, and response. Lets you trace, evaluate, compare, and annotate runs. Essential for debugging why your RAG
+        or agent pipeline gave a bad answer.
+      </p>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #744210;border-radius:8px;padding:18px;margin-bottom:20px">
+      <div style="font-size:0.75rem;font-weight:700;color:#f6ad55;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">LiteLLM</div>
+      <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
+        A <span class="highlight">unified API proxy</span> that wraps 100+ LLM providers (OpenAI, Anthropic, Gemini, Ollama, etc.)
+        under one interface. Call any model using the OpenAI SDK format. Also supports load balancing, rate limiting, cost
+        tracking, and fallbacks across providers.
+      </p>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #2d4a6e;border-radius:8px;padding:18px;margin-bottom:20px">
+      <div style="font-size:0.75rem;font-weight:700;color:#63b3ed;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">DSPy</div>
+      <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
+        Stanford's framework for <span class="highlight">programmatic prompt optimization</span>. Instead of hand-crafting prompts,
+        you define your task as a program and DSPy automatically optimizes prompts/few-shot examples using a compiler. Treats
+        prompt engineering as a machine learning problem.
+      </p>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #2d4a6e;border-radius:8px;padding:18px;margin-bottom:20px">
+      <div style="font-size:0.75rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">OpenTelemetry for AI</div>
+      <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
+        The <span class="highlight">open standard for observability</span> (traces, metrics, logs) applied to AI/LLM pipelines.
+        Instruments your LLM calls so you can export telemetry to any backend (Jaeger, Grafana, Datadog).
+        Vendor-neutral — one instrumentation works everywhere.
+      </p>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:18px;margin-bottom:20px">
+      <div style="font-size:0.75rem;font-weight:700;color:#a0aec0;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">MLflow</div>
+      <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
+        An <span class="highlight">end-to-end ML lifecycle platform</span> — experiment tracking, model registry, deployment,
+        and evaluation. Originally for classical ML but now supports LLM experiment tracking (logging prompts, responses, latency,
+        costs). Widely used in data science teams.
+      </p>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #553c9a;border-radius:8px;padding:18px;margin-bottom:20px">
+      <div style="font-size:0.75rem;font-weight:700;color:#b794f4;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Phoenix (Arize)</div>
+      <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
+        Arize's <span class="highlight">open-source LLM observability tool</span> focused on evaluation and troubleshooting.
+        Visualizes embeddings, traces LLM/RAG pipelines, evaluates hallucinations, relevance, and toxicity. Tightly integrated with
+        OpenTelemetry. Good for debugging retrieval quality in RAG systems.
+      </p>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;overflow:hidden;font-size:0.82rem;margin-top:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;background:#161b22;padding:8px 14px;font-size:0.72rem;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.07em;gap:8px">
+        <div>Tool</div><div>Primary Use</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span class="purple-text">CrewAI</span><span style="color:#a0aec0">Build multi-agent workflows</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span class="highlight">AutoGen</span><span style="color:#a0aec0">Conversational agent orchestration</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span class="green-text">LangSmith</span><span style="color:#a0aec0">Debug/trace LLM pipelines</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span class="yellow-text">LiteLLM</span><span style="color:#a0aec0">Unified LLM API gateway</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span style="color:#63b3ed">DSPy</span><span style="color:#a0aec0">Auto-optimize prompts programmatically</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span style="color:#93c5fd">OpenTelemetry</span><span style="color:#a0aec0">Standard telemetry for AI observability</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span style="color:#a0aec0">MLflow</span><span style="color:#a0aec0">ML experiment tracking + model registry</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span class="purple-text">Phoenix (Arize)</span><span style="color:#a0aec0">LLM/RAG evaluation + observability</span></div>
     </div>
   </div>
 </div>
