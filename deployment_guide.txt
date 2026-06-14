@@ -1,0 +1,476 @@
+===========================================================================
+  AdTech MCP — Deployment Guide
+  python-adtech-mcp-server  (port 8082)  +  python-adtech-mcp-client (port 8080)
+===========================================================================
+
+PROJECTS
+  python-adtech-mcp-server   — Tool provider (22 mock AdTech tools, no AI)
+  python-adtech-mcp-client   — AI agent (LangChain + LangGraph, KB search)
+
+ARCHITECTURE
+  Browser / curl
+      ↓  HTTP :8080
+  python-adtech-mcp-client      ← LangGraph ReAct agent
+      ↓  POST /mcp/tools/{name}
+  python-adtech-mcp-server      ← 22 AdTech tools (mock data)
+      ↑
+  searchKnowledgeBase            ← runs inside client (NOT the server)
+      ↓  local                   ↓  gcp
+  ChromaDB (./chroma_db)    Vertex AI Search (adtech-kb)
+
+
+===========================================================================
+  SECTION 1 — LOCAL (Mac)
+===========================================================================
+
+PREREQUISITES
+  Python 3.11+
+  gcloud CLI (only needed for KB_PROVIDER=gcp)
+
+---------------------------------------------------------------------------
+  1A. Start python-adtech-mcp-server (Terminal 1)
+---------------------------------------------------------------------------
+
+  cd python-adtech-mcp-server
+
+  # First time only
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install -r requirements.txt
+
+  # Every time
+  source venv/bin/activate
+  uvicorn app.main:app --reload --port 8082
+
+  Verify:
+    curl http://localhost:8082/mcp/health
+    curl http://localhost:8082/mcp/tools | python3 -m json.tool
+    open http://localhost:8082/docs        ← Swagger UI (22 tools)
+
+  Expected health response:
+    {"status":"UP","toolCount":22,"service":"python-adtech-mcp-server"}
+
+---------------------------------------------------------------------------
+  1B. Start python-adtech-mcp-client (Terminal 2)
+---------------------------------------------------------------------------
+
+  cd python-adtech-mcp-client
+
+  # First time only
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install -r requirements.txt
+
+  # Copy and configure env
+  cp .env.example .env
+
+  # Minimum required — edit .env:
+    GROQ_API_KEY=gsk_...          ← get free key: https://console.groq.com/keys
+    MCP_SERVER_URL=http://localhost:8082
+    KB_PROVIDER=local             ← uses ChromaDB, no GCP needed
+
+  # Every time
+  source venv/bin/activate
+  uvicorn app.main:app --reload --port 8080
+
+  Verify:
+    curl http://localhost:8080/api/v1/support/health-check
+    open http://localhost:8080          ← Chat dashboard
+    open http://localhost:8080/docs     ← Swagger UI
+
+  NOTE: First searchKnowledgeBase call downloads all-MiniLM-L6-v2 (~90 MB
+  to ~/.cache/huggingface/) and seeds ./chroma_db/ from kb-docs/.
+  Subsequent calls are instant.
+
+---------------------------------------------------------------------------
+  1C. Local with Vertex AI Search (KB_PROVIDER=gcp)
+---------------------------------------------------------------------------
+
+  Only do this if you want to test the GCP knowledge base locally.
+
+  # Authenticate
+  gcloud auth application-default login
+  gcloud config set project YOUR_PROJECT_ID
+
+  # Run KB setup (one time)
+  cd python-adtech-mcp-client
+  export PROJECT_ID=$(gcloud config get-value project)
+  ./setup-kb.sh
+
+  # In .env:
+    KB_PROVIDER=gcp
+    GCP_PROJECT_ID=your-gcp-project-id
+    KB_DATASTORE_ID=adtech-kb
+    KB_SERVING_CONFIG=default_search
+
+  Then start client normally (1B above).
+
+---------------------------------------------------------------------------
+  1D. Test a query (local)
+---------------------------------------------------------------------------
+
+  curl -X POST http://localhost:8080/api/v1/support/query \
+    -H "Content-Type: application/json" \
+    -d '{"query": "Campaign CMP-4491 is not delivering", "campaignId": "CMP-4491"}'
+
+  curl -X POST http://localhost:8080/api/v1/support/query \
+    -H "Content-Type: application/json" \
+    -d '{"query": "Why is deal DEAL-7723 getting zero bid requests?", "dealId": "DEAL-7723"}'
+
+  curl -X POST http://localhost:8080/api/v1/support/query \
+    -H "Content-Type: application/json" \
+    -d '{"query": "Pixel firing but no conversions attributed", "pixelId": "PX-9902"}'
+
+---------------------------------------------------------------------------
+  1E. Mock data scenarios
+---------------------------------------------------------------------------
+
+  Campaign ID suffix controls which scenario fires:
+    ends with 1  → PAUSED + budget $0 + bid below floor + audience 0  (4 issues)
+    ends with 2  → ACTIVE + healthy + budget remaining                 (no issues)
+    ends with 3  → ACTIVE + bid below floor only                       (1 issue)
+    other        → PAUSED + budget exhausted (default bad state)
+
+  Examples:
+    CMP-4491 → classic delivery failure (4 simultaneous issues)
+    CMP-4492 → healthy campaign
+    CMP-4493 → bid below floor only
+
+
+===========================================================================
+  SECTION 2 — GCP (Cloud Run)
+===========================================================================
+
+PREREQUISITES
+  gcloud CLI installed and authenticated
+  GCP project with billing enabled
+
+  # One-time auth setup
+  gcloud auth login
+  gcloud auth application-default login
+  gcloud config set project YOUR_PROJECT_ID
+
+  # Verify
+  gcloud config get-value project
+
+---------------------------------------------------------------------------
+  2A. Deploy python-adtech-mcp-server
+---------------------------------------------------------------------------
+
+  cd python-adtech-mcp-server
+  chmod +x deploy.sh
+  ./deploy.sh
+
+  What deploy.sh does:
+    1. Enables Cloud Run, Cloud Build, Container Registry APIs
+    2. Builds Docker image via Cloud Build
+    3. Pushes to Google Container Registry (GCR)
+    4. Deploys to Cloud Run (region: us-central1, 256Mi, min=0, max=3)
+    5. Health check + tool count verification
+    6. Prints live URL + export command
+
+  Expected output (last lines):
+    Tools registered: 22
+    ============================================
+      Python MCP Server is LIVE
+      URL: https://python-adtech-mcp-server-xxxx-uc.a.run.app
+      Save this URL for the client deploy:
+      export MCP_SERVER_URL=https://python-adtech-mcp-server-xxxx-uc.a.run.app
+    ============================================
+
+  Save that export command — you need it for step 2C.
+
+  Manual verification:
+    SERVER_URL=$(gcloud run services describe python-adtech-mcp-server \
+      --region us-central1 --format "value(status.url)")
+
+    curl $SERVER_URL/mcp/health
+    curl $SERVER_URL/mcp/tools | python3 -m json.tool
+
+---------------------------------------------------------------------------
+  2B. Set up Knowledge Base on GCP (one time)
+---------------------------------------------------------------------------
+
+  This creates the Vertex AI Search datastore that the client queries
+  when KB_PROVIDER=gcp on Cloud Run.
+
+  cd python-adtech-mcp-client
+  chmod +x setup-kb.sh
+  export PROJECT_ID=$(gcloud config get-value project)
+  ./setup-kb.sh
+
+  What setup-kb.sh does:
+    1. Enables Discovery Engine API
+    2. Creates Vertex AI Search datastore (adtech-kb)
+    3. Creates GCS bucket: gs://{PROJECT_ID}-kb-docs/
+    4. Uploads 10 JSON docs from kb-docs/ to GCS
+    5. Imports and indexes docs into Vertex AI Search
+    6. Polls until indexing complete (up to 10 min)
+    7. Runs 10 test searches (one per document)
+
+  GCP resources created:
+    Vertex AI Search datastore : projects/.../dataStores/adtech-kb
+    GCS bucket                 : gs://{PROJECT_ID}-kb-docs/
+
+  Skip this step if the datastore already exists.
+  Re-run only when adding or updating KB documents.
+
+---------------------------------------------------------------------------
+  2C. Deploy python-adtech-mcp-client
+---------------------------------------------------------------------------
+
+  cd python-adtech-mcp-client
+  chmod +x deploy.sh
+
+  # Required (Groq mode)
+  export GROQ_API_KEY=gsk_...
+
+  # MCP server URL from step 2A (auto-resolved if not set)
+  export MCP_SERVER_URL=https://python-adtech-mcp-server-xxxx-uc.a.run.app
+
+  ./deploy.sh
+
+  What deploy.sh does:
+    1. Stores GROQ_API_KEY in Secret Manager (groq-api-key)
+    2. Grants Cloud Run SA access to the secret
+    3. Enables all required APIs including discoveryengine.googleapis.com
+    4. Builds Docker image via Cloud Build
+    5. Deploys to Cloud Run with env vars:
+         KB_PROVIDER=gcp
+         GCP_PROJECT_ID=$PROJECT_ID
+         KB_DATASTORE_ID=adtech-kb
+         MCP_SERVER_URL=<resolved URL>
+         LLM_PROVIDER=groq
+    6. Health check
+
+  Expected output (last lines):
+    ============================================
+      Python MCP Client is LIVE
+      URL      : https://python-adtech-mcp-client-xxxx-uc.a.run.app
+      Dashboard: https://python-adtech-mcp-client-xxxx-uc.a.run.app/
+      Swagger  : https://python-adtech-mcp-client-xxxx-uc.a.run.app/docs
+    ============================================
+
+---------------------------------------------------------------------------
+  2D. Test on GCP
+---------------------------------------------------------------------------
+
+  CLIENT_URL=$(gcloud run services describe python-adtech-mcp-client \
+    --region us-central1 --format "value(status.url)")
+
+  # Health check
+  curl $CLIENT_URL/api/v1/support/health-check
+
+  # Query
+  curl -X POST $CLIENT_URL/api/v1/support/query \
+    -H "Content-Type: application/json" \
+    -d '{"query": "Campaign CMP-4491 is not delivering", "campaignId": "CMP-4491"}'
+
+  # Dashboard
+  open $CLIENT_URL
+
+---------------------------------------------------------------------------
+  2E. Deploy with Vertex AI (LLM) instead of Groq
+---------------------------------------------------------------------------
+
+  export LLM_PROVIDER=vertex
+  ./deploy.sh    # skips Secret Manager, uses ADC on Cloud Run
+
+  Cloud Run uses Application Default Credentials automatically.
+  No GROQ_API_KEY needed.
+
+---------------------------------------------------------------------------
+  2F. Override to use Java MCP server instead of Python
+---------------------------------------------------------------------------
+
+  export SERVER_SERVICE=adtech-mcp-server    # Java server service name
+  ./deploy.sh
+
+  Or pass URL directly:
+  export MCP_SERVER_URL=https://adtech-mcp-server-xxxx-uc.a.run.app
+  ./deploy.sh
+
+
+===========================================================================
+  SECTION 3 — PRODUCTION DEPLOYMENT
+===========================================================================
+
+  Production uses PROD=true flag which changes:
+    LLM        : Groq → Vertex AI Gemini 2.0 Flash  (no rate limits, enterprise SLA)
+    KB         : ChromaDB → Vertex AI Search          (managed, scalable)
+    Database   : SQLite → Cloud SQL PostgreSQL         (persistent, scalable)
+    Logging    : Plain text → JSON (Cloud Logging)
+    Instances  : min=0 → min=1  (no cold starts)
+    Resources  : 512Mi/1cpu → 1Gi/2cpu  (client), 256Mi/1cpu → 256Mi/2cpu (server)
+    Swagger    : enabled → disabled
+    CORS       : * → your actual domain
+    Auth       : none → X-API-Key header enforcement
+
+---------------------------------------------------------------------------
+  3A. One-command production deploy
+---------------------------------------------------------------------------
+
+  # Step 1 — Deploy server (production)
+  cd python-adtech-mcp-server
+  export PROD=true
+  ./deploy.sh
+
+  # Step 2 — Setup KB (only first time)
+  cd ../python-adtech-mcp-client
+  export PROJECT_ID=$(gcloud config get-value project)
+  ./setup-kb.sh
+
+  # Step 3 — Deploy client (production)
+  cd python-adtech-mcp-client
+  export PROD=true
+  export LLM_PROVIDER=vertex
+  export CORS_ORIGINS=https://adtech-support.yourdomain.com
+  ./deploy.sh
+
+---------------------------------------------------------------------------
+  3B. Production with Cloud SQL (persistent tickets DB)
+---------------------------------------------------------------------------
+
+  # Create Cloud SQL instance (one time)
+  gcloud sql instances create adtech-db \
+    --database-version=POSTGRES_15 \
+    --tier=db-f1-micro \
+    --region=us-central1
+
+  # Create database and user
+  gcloud sql databases create adtech --instance=adtech-db
+  gcloud sql users create adtech-user \
+    --instance=adtech-db \
+    --password=YOUR_STRONG_PASSWORD
+
+  # Deploy client with Cloud SQL
+  export PROD=true
+  export LLM_PROVIDER=vertex
+  export CLOUDSQL_INSTANCE=$(gcloud config get-value project):us-central1:adtech-db
+  export DATABASE_URL="postgresql+asyncpg://adtech-user:YOUR_STRONG_PASSWORD@/adtech?host=/cloudsql/$(gcloud config get-value project):us-central1:adtech-db"
+  ./deploy.sh
+
+---------------------------------------------------------------------------
+  3C. Production with API key auth
+---------------------------------------------------------------------------
+
+  # Create API key secret in Secret Manager
+  echo -n "your-strong-api-key-here" | gcloud secrets create adtech-api-key \
+    --data-file=- --replication-policy=automatic
+
+  export PROD=true
+  export LLM_PROVIDER=vertex
+  export API_KEY_SECRET=adtech-api-key
+  ./deploy.sh
+
+  # All /api/* calls must include header:
+  curl -X POST $CLIENT_URL/api/v1/support/query \
+    -H "Content-Type: application/json" \
+    -H "X-API-Key: your-strong-api-key-here" \
+    -d '{"query": "...", "campaignId": "CMP-4491"}'
+
+---------------------------------------------------------------------------
+  3D. Environment comparison
+---------------------------------------------------------------------------
+
+  Setting           | Dev (default)              | Production (PROD=true)
+  ──────────────────|────────────────────────────|───────────────────────────────
+  ENV               | dev                        | prod
+  LLM               | Groq llama-3.3-70b         | Vertex AI gemini-2.0-flash-001
+  KB                | ChromaDB (local)            | Vertex AI Search (GCP)
+  Database          | SQLite                     | Cloud SQL PostgreSQL
+  Logging           | Plain text                 | JSON (Cloud Logging)
+  Swagger UI        | Enabled (/docs)            | Disabled
+  CORS              | * (allow all)              | Specified domain only
+  API Auth          | None                       | X-API-Key header
+  Min instances     | 0 (scale to zero)          | 1 (always warm)
+  Max instances     | 3                          | 10
+  Client memory     | 512Mi                      | 1Gi
+  Client CPU        | 1                          | 2
+  Cold start        | Yes (first request slow)   | No
+
+
+===========================================================================
+  SECTION 4 — ENVIRONMENT VARIABLES REFERENCE
+===========================================================================
+
+  python-adtech-mcp-server
+  ─────────────────────────────────────────────────────────────────────────
+  Variable     | Default | Description
+  PORT         | 8082    | Server port (Cloud Run injects automatically)
+
+  python-adtech-mcp-client
+  ─────────────────────────────────────────────────────────────────────────
+  Variable           | Dev default                | Prod value
+  ENV                | dev                        | prod
+  PORT               | 8080                       | (injected by Cloud Run)
+  MCP_SERVER_URL     | http://localhost:8082       | Cloud Run URL
+  LLM_PROVIDER       | groq                       | vertex
+  GROQ_API_KEY       | —                          | (Secret Manager)
+  GROQ_MODEL         | llama-3.3-70b-versatile    | —
+  VERTEX_PROJECT_ID  | —                          | your-project-id
+  VERTEX_LOCATION    | us-central1                | us-central1
+  VERTEX_MODEL       | gemini-2.0-flash-001       | gemini-2.0-flash-001
+  AGENT_MAX_TOOL_CALLS | 6                        | 6
+  KB_PROVIDER        | local                      | gcp
+  KB_DOCS_DIR        | ./kb-docs                  | —
+  CHROMA_DB_PATH     | ./chroma_db                | —
+  GCP_PROJECT_ID     | —                          | your-project-id
+  KB_DATASTORE_ID    | adtech-kb                  | adtech-kb
+  KB_SERVING_CONFIG  | default_search             | default_search
+  API_KEY            | (empty = no auth)          | (Secret Manager)
+  CORS_ORIGINS       | *                          | https://your-domain.com
+  DATABASE_URL       | sqlite+aiosqlite:///...    | postgresql+asyncpg://...
+
+
+===========================================================================
+  SECTION 5 — COST MANAGEMENT (GCP)
+===========================================================================
+
+  # Scale both services to zero when not in use (no cost when idle)
+  gcloud run services update python-adtech-mcp-server \
+    --region us-central1 --min-instances 0
+  gcloud run services update python-adtech-mcp-client \
+    --region us-central1 --min-instances 0
+
+  # Delete services
+  gcloud run services delete python-adtech-mcp-server --region us-central1
+  gcloud run services delete python-adtech-mcp-client --region us-central1
+
+  # Delete KB bucket (optional)
+  gsutil rm -r gs://${PROJECT_ID}-kb-docs
+
+  # Delete Vertex AI Search datastore (optional)
+  TOKEN=$(gcloud auth print-access-token)
+  curl -X DELETE \
+    -H "Authorization: Bearer $TOKEN" \
+    "https://discoveryengine.googleapis.com/v1/projects/${PROJECT_ID}/locations/global/collections/default_collection/dataStores/adtech-kb"
+
+
+===========================================================================
+  SECTION 6 — QUICK REFERENCE
+===========================================================================
+
+  Local start order:
+    Terminal 1 → cd python-adtech-mcp-server && uvicorn app.main:app --reload --port 8082
+    Terminal 2 → cd python-adtech-mcp-client && uvicorn app.main:app --reload --port 8080
+
+  GCP deploy order:
+    1. cd python-adtech-mcp-server  && ./deploy.sh
+    2. cd python-adtech-mcp-client  && export PROJECT_ID=$(gcloud config get-value project) && ./setup-kb.sh
+    3. cd python-adtech-mcp-client  && export GROQ_API_KEY=gsk_... && ./deploy.sh
+
+  Endpoints:
+    Local server  health : http://localhost:8082/mcp/health
+    Local server  tools  : http://localhost:8082/mcp/tools
+    Local server  swagger: http://localhost:8082/docs
+    Local client  health : http://localhost:8080/api/v1/support/health-check
+    Local client  query  : POST http://localhost:8080/api/v1/support/query
+    Local client  dash   : http://localhost:8080
+    Local client  swagger: http://localhost:8080/docs
+
+  KB provider switch:
+    Local dev  → KB_PROVIDER=local  (ChromaDB, no GCP, default)
+    Production → KB_PROVIDER=gcp    (Vertex AI Search, auto-set by deploy.sh)
+
+===========================================================================

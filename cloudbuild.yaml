@@ -1,0 +1,124 @@
+steps:
+  # Step 1 — Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/python-adtech-mcp-client:latest'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/python-adtech-mcp-client:$BUILD_ID'
+      - '.'
+
+  # Step 2 — Push image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/python-adtech-mcp-client:latest']
+
+  # Step 3 — Resolve MCP server URL
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        if [ -n "${_MCP_SERVER_URL}" ]; then
+          echo "Using provided MCP_SERVER_URL: ${_MCP_SERVER_URL}"
+          echo "${_MCP_SERVER_URL}" > /workspace/mcp_url.txt
+        else
+          MCP_SVC="${_MCP_SERVER_SERVICE}"
+          if [ -z "$$MCP_SVC" ]; then
+            MCP_SVC="python-adtech-mcp-server"
+          fi
+          echo "Auto-resolving MCP server URL from Cloud Run service: $$MCP_SVC"
+          URL=$(gcloud run services describe "$$MCP_SVC" \
+            --platform managed \
+            --region ${_REGION} \
+            --format "value(status.url)" 2>/dev/null || echo "")
+          if [ -z "$$URL" ]; then
+            echo "ERROR: $$MCP_SVC not found in region ${_REGION}."
+            exit 1
+          fi
+          echo "Resolved MCP server URL: $$URL"
+          echo "$$URL" > /workspace/mcp_url.txt
+        fi
+
+  # Step 4 — Deploy to Cloud Run
+  #
+  #  dev  defaults: min=0, max=3,  memory=512Mi, cpu=1
+  #  prod overrides: min=1, max=10, memory=1Gi,  cpu=2  (pass via substitutions)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        MCP_URL=$(cat /workspace/mcp_url.txt)
+        echo "Deploying  env=${_ENV}  llm=${_LLM_PROVIDER}  min=${_MIN_INSTANCES}"
+
+        SECRETS_ARG=""
+        if [ "${_LLM_PROVIDER}" = "groq" ]; then
+          SECRETS_ARG="--update-secrets=GROQ_API_KEY=groq-api-key:latest"
+        fi
+
+        # API_KEY secret — only wired when _API_KEY_SECRET is set
+        if [ -n "${_API_KEY_SECRET}" ]; then
+          SECRETS_ARG="$$SECRETS_ARG --update-secrets=API_KEY=${_API_KEY_SECRET}:latest"
+        fi
+
+        # Cloud SQL — only wired when _CLOUDSQL_INSTANCE is set
+        CLOUDSQL_ARG=""
+        if [ -n "${_CLOUDSQL_INSTANCE}" ]; then
+          CLOUDSQL_ARG="--add-cloudsql-instances=${_CLOUDSQL_INSTANCE}"
+        fi
+
+        gcloud run deploy python-adtech-mcp-client \
+          --image=gcr.io/$PROJECT_ID/python-adtech-mcp-client:latest \
+          --platform=managed \
+          --region=${_REGION} \
+          --memory=${_MEMORY} \
+          --cpu=${_CPU} \
+          --min-instances=${_MIN_INSTANCES} \
+          --max-instances=${_MAX_INSTANCES} \
+          --concurrency=80 \
+          --allow-unauthenticated \
+          $$SECRETS_ARG \
+          $$CLOUDSQL_ARG \
+          --set-env-vars="ENV=${_ENV},MCP_SERVER_URL=$$MCP_URL,LLM_PROVIDER=${_LLM_PROVIDER},KB_PROVIDER=gcp,GCP_PROJECT_ID=$PROJECT_ID,KB_DATASTORE_ID=${_KB_DATASTORE_ID},CORS_ORIGINS=${_CORS_ORIGINS},DATABASE_URL=${_DATABASE_URL}" \
+          --quiet
+
+substitutions:
+  _REGION: 'us-central1'
+  _ENV: 'dev'                  # 'dev' or 'prod'
+
+  # MCP server
+  _MCP_SERVER_URL: ''          # leave empty to auto-resolve
+  _MCP_SERVER_SERVICE: ''      # Cloud Run service name (default: python-adtech-mcp-server)
+
+  # LLM
+  _LLM_PROVIDER: 'groq'        # 'groq' (dev) or 'vertex' (prod)
+
+  # Knowledge Base
+  _KB_DATASTORE_ID: 'adtech-kb'
+
+  # Resources — dev defaults (override for prod)
+  _MIN_INSTANCES: '0'          # prod: '1'
+  _MAX_INSTANCES: '3'          # prod: '10'
+  _MEMORY: '512Mi'             # prod: '1Gi'
+  _CPU: '1'                    # prod: '2'
+
+  # Security — empty = disabled (set for prod)
+  _API_KEY_SECRET: ''          # Secret Manager secret name for API_KEY e.g. 'adtech-api-key'
+  _CORS_ORIGINS: '*'           # prod: 'https://adtech-support.yourdomain.com'
+
+  # Database — dev default SQLite (set for prod Cloud SQL)
+  _DATABASE_URL: 'sqlite+aiosqlite:///./tickets.db'
+  # prod: 'postgresql+asyncpg://user:pass@/dbname?host=/cloudsql/PROJECT:REGION:INSTANCE'
+
+  # Cloud SQL (prod only)
+  _CLOUDSQL_INSTANCE: ''       # prod: 'PROJECT:REGION:INSTANCE'
+
+images:
+  - 'gcr.io/$PROJECT_ID/python-adtech-mcp-client:latest'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '900s'

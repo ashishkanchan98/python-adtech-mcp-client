@@ -1,0 +1,2278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdTech Support — Python LangGraph Agent</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1117;color:#e2e8f0;min-height:100vh}
+  header{background:linear-gradient(135deg,#1a1f2e,#252d3d);border-bottom:1px solid #2d3748;padding:16px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header h1{font-size:1.2rem;font-weight:700;color:#fff}
+  .badge{background:#4c51bf;color:#fff;font-size:0.68rem;padding:3px 8px;border-radius:20px;font-weight:600}
+  .badge.green{background:#276749}
+  .badge.yellow{background:#744210}
+  .badge.purple{background:#553c9a}
+  nav{display:flex;gap:4px;padding:0 28px;background:#141920;border-bottom:1px solid #2d3748;flex-wrap:wrap}
+  nav button{background:none;border:none;color:#a0aec0;padding:14px 18px;cursor:pointer;font-size:0.88rem;border-bottom:2px solid transparent;transition:all .2s}
+  nav button.active{color:#7f9cf5;border-bottom-color:#7f9cf5}
+  nav button:hover{color:#e2e8f0}
+  .page{display:none;padding:28px;max-width:960px;margin:0 auto}
+  .page.active{display:block}
+  .card{background:#1a1f2e;border:1px solid #2d3748;border-radius:10px;padding:22px;margin-bottom:20px}
+  .card h2{font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:18px}
+  label{display:block;font-size:0.82rem;color:#a0aec0;margin-bottom:6px;margin-top:14px}
+  input,textarea,select{width:100%;background:#0f1117;border:1px solid #2d3748;border-radius:6px;padding:10px 12px;color:#e2e8f0;font-size:0.9rem;outline:none;transition:border .2s}
+  input:focus,textarea:focus{border-color:#7f9cf5}
+  textarea{resize:vertical;min-height:90px;font-family:inherit}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .btn{background:#4c51bf;color:#fff;border:none;border-radius:6px;padding:11px 24px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:background .2s;margin-top:18px}
+  .btn:hover{background:#434190}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.sm{padding:7px 14px;font-size:0.82rem;margin-top:0}
+  .result{background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:18px;margin-top:20px;display:none}
+  .result.show{display:block}
+  .result-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .status-pill{padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:700}
+  .RESOLVED_BY_AGENT{background:#1c4532;color:#68d391}
+  .ESCALATED{background:#7b341e;color:#fc8181}
+  .tools-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .tool-tag{background:#1e293b;border:1px solid #334155;color:#93c5fd;font-size:0.73rem;padding:3px 8px;border-radius:4px;font-family:monospace}
+  .tool-tag.kb{border-color:#553c9a;color:#b794f4}
+  .answer-text{white-space:pre-wrap;font-size:0.88rem;line-height:1.65;color:#cbd5e0}
+  .meta{font-size:0.78rem;color:#718096;margin-top:10px}
+  table{width:100%;border-collapse:collapse;font-size:0.86rem}
+  th{text-align:left;padding:10px 12px;color:#718096;border-bottom:1px solid #2d3748;font-weight:600}
+  td{padding:10px 12px;border-bottom:1px solid #1e2533;vertical-align:top}
+  tr:hover td{background:#1a2035}
+  .loading{text-align:center;padding:40px;color:#718096;display:none}
+  .loading.show{display:block}
+  .spinner{display:inline-block;width:28px;height:28px;border:3px solid #2d3748;border-top-color:#7f9cf5;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .arch-box{background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:18px;font-family:monospace;font-size:0.8rem;color:#a0aec0;white-space:pre;overflow-x:auto;line-height:1.7}
+  .section-title{font-size:0.78rem;text-transform:uppercase;letter-spacing:.08em;color:#718096;margin-bottom:10px;margin-top:20px}
+  .ticket-row{cursor:pointer}
+  .ticket-row:hover td{background:#1e2840}
+  .ticket-expand{display:none;background:#0d1117}
+  .ticket-expand.open{display:table-row}
+  .ticket-answer{white-space:pre-wrap;font-size:0.83rem;line-height:1.65;color:#cbd5e0;padding:14px 16px;border-top:1px solid #1e2533}
+  .ticket-answer-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:.07em;color:#718096;margin-bottom:8px}
+  .highlight{color:#7f9cf5}
+  .green-text{color:#68d391}
+  .yellow-text{color:#f6e05e}
+  .purple-text{color:#b794f4}
+  .red-text{color:#fc8181}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .info-box{background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:16px}
+  .info-box h3{font-size:0.82rem;color:#a0aec0;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em}
+  .info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1e2533;font-size:0.83rem}
+  .info-row:last-child{border-bottom:none}
+  .info-val{color:#7f9cf5;font-family:monospace;font-size:0.8rem}
+  .kb-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:600}
+  .kb-local{background:#1c3a4a;color:#63b3ed}
+  .kb-gcp{background:#1c4532;color:#68d391}
+  .diagram-wrap{background:#0d1117;border:1px solid #2d3748;border-radius:10px;padding:24px;margin-bottom:20px;overflow-x:auto;transition:border-color .2s}
+  .diagram-wrap:hover{border-color:#4c51bf}
+  .diagram-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .diagram-header h3{font-size:0.9rem;font-weight:600;color:#7f9cf5;text-transform:uppercase;letter-spacing:.06em;margin:0}
+  .btn-expand{background:#1e293b;border:1px solid #334155;color:#7f9cf5;font-size:0.75rem;padding:5px 11px;border-radius:5px;cursor:pointer;transition:all .2s;white-space:nowrap}
+  .btn-expand:hover{background:#2d3748;border-color:#4c51bf}
+  .diagram-wrap p{font-size:0.82rem;color:#718096;margin-bottom:16px;line-height:1.6}
+  .mermaid{display:flex;justify-content:center}
+  /* ── Diagram modal ─────────────────────────────────── */
+  #diagram-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:1000;flex-direction:column;align-items:center;padding:20px;overflow:auto}
+  #diagram-modal.open{display:flex}
+  #modal-header{width:100%;max-width:1200px;display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;flex-wrap:wrap;gap:8px}
+  #modal-title{font-size:0.95rem;font-weight:600;color:#7f9cf5;text-transform:uppercase;letter-spacing:.06em}
+  #modal-controls{display:flex;gap:6px;align-items:center}
+  #modal-zoom-val{color:#a0aec0;font-size:0.8rem;font-family:monospace;min-width:38px;text-align:center}
+  .btn-zoom{background:#1e293b;border:1px solid #334155;color:#e2e8f0;width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;padding:0}
+  .btn-zoom:hover{background:#2d3748}
+  .btn-zoom.wide{width:auto;padding:0 9px;font-size:0.74rem}
+  #modal-close{background:none;border:1px solid #334155;color:#a0aec0;font-size:0.88rem;cursor:pointer;padding:4px 12px;border-radius:5px}
+  #modal-close:hover{color:#e2e8f0;border-color:#a0aec0}
+  #modal-desc{color:#718096;font-size:0.82rem;line-height:1.55;max-width:1200px;width:100%;padding:4px 0 10px}
+  #modal-body{background:#0d1117;border:1px solid #2d3748;border-radius:10px;padding:30px;overflow:auto;width:100%;max-width:1200px;flex:1;display:flex;align-items:flex-start;justify-content:center}
+  #modal-svg-wrap{transform-origin:top center;transition:transform .15s}
+  #modal-svg-wrap svg{max-width:100%;height:auto}
+  /* ── Node tooltip ──────────────────────────────────── */
+  #diag-tooltip{position:fixed;background:#1e293b;border:1px solid #4c51bf;border-radius:6px;padding:9px 13px;font-size:0.78rem;color:#e2e8f0;pointer-events:none;z-index:2000;max-width:280px;display:none;line-height:1.55;box-shadow:0 4px 16px rgba(0,0,0,0.5)}
+  /* ── Memory toggle ─────────────────────────────────── */
+  .mem-bar{display:flex;align-items:center;gap:12px;background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:11px 14px;margin-top:16px;flex-wrap:wrap}
+  .mem-switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+  .mem-switch input{opacity:0;width:0;height:0}
+  .mem-slider{position:absolute;cursor:pointer;inset:0;background:#374151;border-radius:22px;transition:.2s}
+  .mem-slider:before{position:absolute;content:'';height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+  .mem-switch input:checked + .mem-slider{background:#276749}
+  .mem-switch input:checked + .mem-slider:before{transform:translateX(18px)}
+  .mem-mode-label{font-size:0.84rem;font-weight:600;color:#e2e8f0}
+  .mem-desc{font-size:0.78rem;color:#718096}
+  .mem-thread-id{font-family:monospace;font-size:0.72rem;color:#7f9cf5;background:#1e293b;border:1px solid #334155;padding:2px 8px;border-radius:4px;display:none}
+  .btn-mem-reset{background:#1e293b;border:1px solid #334155;color:#a0aec0;font-size:0.75rem;padding:4px 10px;border-radius:5px;cursor:pointer;display:none}
+  .btn-mem-reset:hover{border-color:#7f9cf5;color:#e2e8f0}
+  /* ── Human Interrupt ───────────────────────────────── */
+  .hi-bar{display:flex;align-items:center;gap:12px;background:#0d1117;border:1px solid #744210;border-radius:8px;padding:11px 14px;margin-top:8px;flex-wrap:wrap}
+  .approval-panel{background:#0d1117;border:1px solid #f97316;border-radius:10px;padding:18px;margin-top:20px;display:none}
+  .approval-panel.show{display:block}
+  .approval-tool-tag{background:#1a1200;border:1px solid #744210;color:#f6ad55;font-size:0.78rem;padding:4px 10px;border-radius:4px;font-family:monospace}
+  .btn-approve{background:#276749;color:#fff;border:none;border-radius:6px;padding:10px 22px;cursor:pointer;font-size:0.88rem;font-weight:600;transition:background .2s}
+  .btn-approve:hover{background:#22543d}
+  .btn-reject{background:#7b341e;color:#fff;border:none;border-radius:6px;padding:10px 22px;cursor:pointer;font-size:0.88rem;font-weight:600;transition:background .2s}
+  .btn-reject:hover{background:#63271a}
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:1.6rem">🐍</span>
+  <div>
+    <h1>AdTech MCP Client <span style="color:#a0aec0;font-weight:400">— Python / LangGraph</span></h1>
+  </div>
+  <span class="badge">LangChain</span>
+  <span class="badge">LangGraph</span>
+  <span class="badge purple" id="kb-badge">KB: checking...</span>
+  <span class="badge green" id="health-badge">checking...</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('query',this)">New Query</button>
+  <button onclick="showPage('tickets',this)">All Tickets</button>
+  <button onclick="showPage('arch',this)">Architecture</button>
+  <button onclick="showPage('realmcp',this)">RealMCP — Server/Client</button>
+  <button onclick="showPage('diagrams',this)">Diagrams</button>
+  <button onclick="showPage('api',this)">API Reference</button>
+</nav>
+
+<!-- NEW QUERY -->
+<div class="page active" id="page-query">
+  <div class="card">
+    <h2>Submit Support Query</h2>
+    <label>Query *</label>
+    <textarea id="q-query" placeholder="e.g. My campaign CMP-4491 is not delivering any impressions"></textarea>
+    <div class="row">
+      <div>
+        <label>Campaign ID</label>
+        <input id="q-campaign" placeholder="CMP-4491">
+      </div>
+      <div>
+        <label>Advertiser ID</label>
+        <input id="q-advertiser" placeholder="ADV-8821">
+      </div>
+    </div>
+    <div class="row3">
+      <div>
+        <label>Segment ID</label>
+        <input id="q-segment" placeholder="SEG-9012">
+      </div>
+      <div>
+        <label>Deal ID</label>
+        <input id="q-deal" placeholder="DEAL-7723">
+      </div>
+      <div>
+        <label>Account Tier</label>
+        <select id="q-tier">
+          <option value="">— Select —</option>
+          <option>ENTERPRISE</option>
+          <option>STANDARD</option>
+          <option>SELF_SERVE</option>
+        </select>
+      </div>
+    </div>
+    <div class="mem-bar">
+      <label class="mem-switch">
+        <input type="checkbox" id="mem-toggle" onchange="onMemToggle()">
+        <span class="mem-slider"></span>
+      </label>
+      <span class="mem-mode-label">Multi-turn Memory</span>
+      <span class="mem-desc" id="mem-desc">OFF &mdash; each query is independent (current behaviour)</span>
+      <span class="mem-thread-id" id="mem-thread-id"></span>
+      <button class="btn-mem-reset" id="mem-reset-btn" onclick="resetMemSession()">&#8635; New Session</button>
+    </div>
+    <div class="hi-bar">
+      <label class="mem-switch">
+        <input type="checkbox" id="hi-toggle" onchange="onHiToggle()">
+        <span class="mem-slider" style="background:#744210"></span>
+      </label>
+      <span class="mem-mode-label">Human Interrupt</span>
+      <span style="font-size:0.78rem;color:#718096" id="hi-desc">OFF &mdash; agent runs tools automatically</span>
+    </div>
+    <button class="btn" id="submit-btn" onclick="submitQuery()">Run Agent</button>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p id="loading-msg">LangGraph ReAct loop running...</p>
+    <p style="font-size:0.78rem;margin-top:8px;color:#4a5568">LLM decides tools → ToolNode executes in parallel → loops until resolved</p>
+  </div>
+
+  <!-- Human Interrupt approval panel -->
+  <div class="approval-panel" id="approval-panel">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:1.2rem">&#9646;</span>
+      <strong style="color:#f97316;font-size:0.95rem">Agent Paused — Waiting for Approval</strong>
+    </div>
+    <div style="font-size:0.82rem;color:#a0aec0;margin-bottom:10px">The agent plans to call these tools:</div>
+    <div id="approval-tools" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px"></div>
+    <div style="font-size:0.8rem;color:#718096;margin-bottom:14px">
+      <strong style="color:#e2e8f0">Approve</strong> — tools run, agent uses real data to answer<br>
+      <strong style="color:#e2e8f0">Reject</strong> — tools skipped, agent answers from knowledge base only
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn-approve" onclick="resumeQuery(true)">&#10003; Approve — Run Tools</button>
+      <button class="btn-reject" onclick="resumeQuery(false)">&#10007; Reject — KB Only</button>
+    </div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-header">
+      <span style="font-size:1.1rem">🎯</span>
+      <strong>Agent Answer</strong>
+      <span class="status-pill" id="result-status">–</span>
+      <span style="color:#718096;font-size:0.78rem" id="result-meta"></span>
+    </div>
+    <div class="answer-text" id="result-answer"></div>
+    <div class="meta">Tools used:</div>
+    <div class="tools-row" id="result-tools"></div>
+    <div class="meta" id="result-ticket"></div>
+    <div class="meta" id="result-mem" style="margin-top:4px;font-size:0.76rem"></div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h2>Quick Test Scenarios</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <button class="btn sm" onclick="loadScenario('delivery')">Campaign Not Delivering</button>
+      <button class="btn sm" onclick="loadScenario('floor')">Bid Below Floor</button>
+      <button class="btn sm" onclick="loadScenario('deal')">PMP Deal Zero Bids</button>
+      <button class="btn sm" onclick="loadScenario('pixel')">Pixel No Attribution</button>
+      <button class="btn sm" onclick="loadScenario('healthy')">Healthy Campaign</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALL TICKETS -->
+<div class="page" id="page-tickets">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0">All Tickets</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="ticket-count" style="color:#718096;font-size:0.82rem"></span>
+        <button class="btn sm" onclick="loadTickets()">Refresh</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Ticket ID</th><th>Query</th><th>Campaign</th><th>Answer Preview</th><th>Status</th><th>Tools</th><th>Created</th>
+        </tr></thead>
+        <tbody id="tickets-body">
+          <tr><td colspan="7" style="color:#718096;text-align:center;padding:20px">Click Refresh to load tickets</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="ticket-pager" style="display:none;align-items:center;justify-content:space-between;padding:14px 0 4px;font-size:0.82rem;color:#718096;flex-wrap:wrap;gap:8px">
+      <span id="pager-info"></span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="btn-prev" class="btn sm" style="padding:5px 14px" onclick="_goPage(_ticketPage-1)">&#8249; Prev</button>
+        <span id="pager-label" style="padding:5px 8px;color:#a0aec0;min-width:80px;text-align:center"></span>
+        <button id="btn-next" class="btn sm" style="padding:5px 14px" onclick="_goPage(_ticketPage+1)">Next &#8250;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ARCHITECTURE -->
+<div class="page" id="page-arch">
+
+  <div class="card">
+    <h2>System Overview</h2>
+    <div class="info-grid">
+      <div class="info-box">
+        <h3>python-adtech-mcp-server</h3>
+        <div class="info-row"><span>Port</span><span class="info-val">8082</span></div>
+        <div class="info-row"><span>Framework</span><span class="info-val">FastAPI</span></div>
+        <div class="info-row"><span>Tools</span><span class="info-val">22 mock AdTech tools</span></div>
+        <div class="info-row"><span>AI / GCP deps</span><span class="info-val" style="color:#68d391">None</span></div>
+        <div class="info-row"><span>Database</span><span class="info-val">None (stateless)</span></div>
+        <div class="info-row"><span>Purpose</span><span class="info-val">Tool provider only</span></div>
+      </div>
+      <div class="info-box">
+        <h3>python-adtech-mcp-client</h3>
+        <div class="info-row"><span>Port</span><span class="info-val">8080</span></div>
+        <div class="info-row"><span>Framework</span><span class="info-val">FastAPI + LangGraph</span></div>
+        <div class="info-row"><span>Tools</span><span class="info-val">22 MCP + 1 KB = 23</span></div>
+        <div class="info-row"><span>LLM (dev)</span><span class="info-val">Groq llama-3.3-70b</span></div>
+        <div class="info-row"><span>LLM (prod)</span><span class="info-val">Gemini 2.0 Flash</span></div>
+        <div class="info-row"><span>Database</span><span class="info-val">SQLite / Cloud SQL</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>LangGraph ReAct Loop</h2>
+    <div class="arch-box">
+<span class="highlight">graph.py — StateGraph(MessagesState)</span>
+
+  START
+    │
+    ▼
+  <span class="green-text">[agent]</span>  call_model()
+    │   SystemPrompt + messages → LLM.invoke()
+    │   LLM decides: call tools OR answer
+    │
+    ├── tool_calls present? ──YES──► <span class="green-text">[tools]</span>  ToolNode (parallel async)
+    │                                    │
+    │                                    ├── getCampaignStatus    → POST :8082/mcp/tools/getCampaignStatus
+    │                                    ├── getHourlySpendCurve  → POST :8082/mcp/tools/getHourlySpendCurve
+    │                                    ├── searchKnowledgeBase  → <span class="purple-text">ChromaDB (local) / Vertex AI Search (gcp)</span>
+    │                                    │                           runs inside client — no HTTP to server
+    │                                    └── ... (all tool_calls run concurrently)
+    │                ◄───────────────────────────────┘
+    │
+    └── no tool_calls / max_rounds hit ──► END
+          └─ extract answer + tools_used
+          └─ save Ticket to SQLite/Cloud SQL
+          └─ return QueryResponse
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>What is ReAct?</h2>
+
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:16px;margin-bottom:16px">
+      <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
+        <span class="highlight" style="font-size:0.95rem;font-weight:700">ReAct = Reasoning + Acting</span><br>
+        A loop where the LLM alternates between <span class="green-text">thinking</span> (what do I still need to know?)
+        and <span class="yellow-text">acting</span> (call a tool to find out) — repeating until it has enough
+        information to write a final answer. Each round the LLM sees <em>all previous messages + tool results</em>,
+        so its decisions get progressively better informed.
+      </p>
+    </div>
+
+    <div class="section-title">Concrete Example — CMP-4491 "Not Delivering"</div>
+    <table style="margin-top:8px">
+      <thead><tr>
+        <th style="width:60px">Round</th>
+        <th>LLM calls these tools</th>
+        <th>What it learns</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td style="text-align:center"><span class="info-val">1</span></td>
+          <td>
+            <span class="tool-tag">getCampaignStatus</span>
+            <span class="tool-tag kb">searchKnowledgeBase</span>
+          </td>
+          <td style="font-size:0.82rem;color:#a0aec0">status=PAUSED, budget=$0.00, bid=$0.95 · KB returns delivery checklist (doc-001)</td>
+        </tr>
+        <tr>
+          <td style="text-align:center"><span class="info-val">2</span></td>
+          <td>
+            <span class="tool-tag">getHourlySpendCurve</span>
+            <span class="tool-tag">getPacingSettings</span>
+          </td>
+          <td style="font-size:0.82rem;color:#a0aec0">Budget hit at 08:03 AM · pacingMode=ASAP (root cause confirmed)</td>
+        </tr>
+        <tr>
+          <td style="text-align:center"><span class="info-val">3</span></td>
+          <td><em style="color:#718096">— no tool calls —</em></td>
+          <td style="font-size:0.82rem;color:#68d391">Synthesises final answer: 4 issues found, fix recommendations → RESOLVED</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:14px;background:#0d1117;border-left:3px solid #4c51bf;border-radius:0 6px 6px 0;padding:10px 14px;font-size:0.82rem;color:#a0aec0;line-height:1.65">
+      <span class="highlight">Why parallel tool execution matters:</span>
+      In Round 1, <code style="color:#b794f4">getCampaignStatus</code> and <code style="color:#b794f4">searchKnowledgeBase</code>
+      run at the same time via LangGraph's ToolNode — not sequentially.
+      This cuts latency significantly when the LLM requests multiple tools at once.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Conversation History &amp; Memory</h2>
+
+    <div class="section-title">Within a single query — already works</div>
+    <div class="arch-box" style="margin-bottom:14px"><span class="highlight">MessagesState accumulates every message across all tool rounds</span>
+
+  State after Round 1:
+    [ HumanMessage("CMP-4491 not delivering"),
+      AIMessage(tool_calls=[getCampaignStatus, searchKnowledgeBase]),
+      ToolMessage(getCampaignStatus → status=PAUSED, budget=$0, bid=$0.95),
+      ToolMessage(searchKnowledgeBase → doc-001 delivery checklist) ]
+
+  State after Round 2:  ◄── LLM sees ALL of the above PLUS new results
+    [ ...Round 1 messages...,
+      AIMessage(tool_calls=[getHourlySpendCurve, getPacingSettings]),
+      ToolMessage(getHourlySpendCurve → budgetHitTime=08:03AM),
+      ToolMessage(getPacingSettings → pacingMode=ASAP) ]
+
+  <span class="green-text">→ LLM never loses context of what it already found in earlier rounds</span></div>
+
+    <div class="section-title">Across multiple queries — multi-turn session memory</div>
+
+    <!-- column header labels -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px">
+      <div style="text-align:center;font-size:0.72rem;font-weight:700;color:#fc8181;text-transform:uppercase;letter-spacing:.08em;padding:5px 0;background:#1a0a0a;border-radius:6px">
+        Without memory &nbsp;(current — each query is fresh)
+      </div>
+      <div style="text-align:center;font-size:0.72rem;font-weight:700;color:#68d391;text-transform:uppercase;letter-spacing:.08em;padding:5px 0;background:#0a1a10;border-radius:6px">
+        With memory &nbsp;(thread_id = same user/session)
+      </div>
+    </div>
+
+    <!-- Turn 1 -->
+    <div style="background:#161b22;border-radius:10px;border:1px solid #30363d;padding:10px 14px;margin-bottom:3px">
+      <div style="font-size:0.7rem;font-weight:700;color:#7dd3fc;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">&#9654; Turn 1</div>
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
+        <div style="background:#1d4ed8;color:#fff;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">User</div>
+        <div style="background:#1e2d40;border:1px solid #2d4a6e;border-radius:8px;padding:6px 10px;font-size:0.82rem;color:#93c5fd">"My campaign CMP-4491 is not delivering"</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#374151;color:#d1d5db;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">Agent</div>
+          <div style="background:#1a1f2e;border:1px solid #374151;border-radius:8px;padding:6px 10px;font-size:0.8rem;color:#a0aec0;line-height:1.6">
+            calls <code style="color:#f6c90e;font-size:0.78rem">getCampaignStatus</code><br>
+            &#8594; PAUSED, bid=$0.95, floor=$1.20
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#374151;color:#d1d5db;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">Agent</div>
+          <div style="background:#1a1f2e;border:1px solid #374151;border-radius:8px;padding:6px 10px;font-size:0.8rem;color:#a0aec0;line-height:1.6">
+            calls <code style="color:#f6c90e;font-size:0.78rem">getCampaignStatus</code><br>
+            &#8594; PAUSED, bid=$0.95, floor=$1.20
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- memory bridge after Turn 1 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:3px">
+      <div style="text-align:center;padding:4px 0;font-size:0.72rem;color:#4a5568">&#8203;</div>
+      <div style="text-align:center;background:#0d2318;border:1px dashed #276749;border-radius:6px;padding:4px 10px;font-size:0.73rem;color:#68d391">
+        &#128190; Checkpoint saved &#8250; CMP-4491 · status=PAUSED · bid=$0.95 · floor=$1.20
+      </div>
+    </div>
+
+    <!-- Turn 2 -->
+    <div style="background:#161b22;border-radius:10px;border:1px solid #30363d;padding:10px 14px;margin-bottom:3px">
+      <div style="font-size:0.7rem;font-weight:700;color:#7dd3fc;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">&#9654; Turn 2</div>
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
+        <div style="background:#1d4ed8;color:#fff;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">User</div>
+        <div style="background:#1e2d40;border:1px solid #2d4a6e;border-radius:8px;padding:6px 10px;font-size:0.82rem;color:#93c5fd">"How do I fix the bid issue?"</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#374151;color:#d1d5db;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">Agent</div>
+          <div style="background:#2d1515;border:1px solid #7b341e;border-radius:8px;padding:6px 10px;font-size:0.8rem;color:#fc8181;line-height:1.6">
+            &#10060; No memory of Turn 1<br>
+            calls <code style="color:#f6c90e;font-size:0.78rem">getCampaignStatus</code> <em>again</em><br>
+            <span style="color:#a0aec0">&#8212; wasted tool round</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#374151;color:#d1d5db;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">Agent</div>
+          <div style="background:#0d2318;border:1px solid #276749;border-radius:8px;padding:6px 10px;font-size:0.8rem;color:#a0aec0;line-height:1.6">
+            <span style="color:#68d391">&#10004; Remembers</span> CMP-4491, bid=$0.95, floor=$1.20<br>
+            skips tool call &#8250; answers directly:<br>
+            <span style="color:#e2e8f0">"Raise CPM bid to &#8805;$1.30 (+$0.10 buffer)"</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- memory bridge after Turn 2 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:3px">
+      <div></div>
+      <div style="text-align:center;background:#0d2318;border:1px dashed #276749;border-radius:6px;padding:4px 10px;font-size:0.73rem;color:#68d391">
+        &#128190; + bid fix advice remembered
+      </div>
+    </div>
+
+    <!-- Turn 3 -->
+    <div style="background:#161b22;border-radius:10px;border:1px solid #30363d;padding:10px 14px;margin-bottom:3px">
+      <div style="font-size:0.7rem;font-weight:700;color:#7dd3fc;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">&#9654; Turn 3</div>
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
+        <div style="background:#1d4ed8;color:#fff;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">User</div>
+        <div style="background:#1e2d40;border:1px solid #2d4a6e;border-radius:8px;padding:6px 10px;font-size:0.82rem;color:#93c5fd">"What about the budget exhaustion problem?"</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#374151;color:#d1d5db;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">Agent</div>
+          <div style="background:#2d1515;border:1px solid #7b341e;border-radius:8px;padding:6px 10px;font-size:0.8rem;color:#fc8181;line-height:1.6">
+            &#10060; No memory of prior turns<br>
+            asks "Which campaign?" or calls<br>
+            <code style="color:#f6c90e;font-size:0.78rem">getCampaignStatus</code> again to find ID
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#374151;color:#d1d5db;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">Agent</div>
+          <div style="background:#0d2318;border:1px solid #276749;border-radius:8px;padding:6px 10px;font-size:0.8rem;color:#a0aec0;line-height:1.6">
+            <span style="color:#68d391">&#10004; Knows campaign = CMP-4491</span><br>
+            calls <code style="color:#f6c90e;font-size:0.78rem">getHourlySpendCurve</code><br>
+            &#8594; <span style="color:#e2e8f0">"Budget $0 at 08:03 AM — switch pacing to EVEN"</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- memory bridge after Turn 3 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:3px">
+      <div></div>
+      <div style="text-align:center;background:#0d2318;border:1px dashed #276749;border-radius:6px;padding:4px 10px;font-size:0.73rem;color:#68d391">
+        &#128190; 3 issues now in memory: PAUSED · bid below floor · ASAP pacing
+      </div>
+    </div>
+
+    <!-- Turn 4 -->
+    <div style="background:#161b22;border-radius:10px;border:1px solid #30363d;padding:10px 14px;margin-bottom:14px">
+      <div style="font-size:0.7rem;font-weight:700;color:#7dd3fc;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">&#9654; Turn 4</div>
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
+        <div style="background:#1d4ed8;color:#fff;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">User</div>
+        <div style="background:#1e2d40;border:1px solid #2d4a6e;border-radius:8px;padding:6px 10px;font-size:0.82rem;color:#93c5fd">"Can you summarise all the issues we found?"</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#374151;color:#d1d5db;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">Agent</div>
+          <div style="background:#2d1515;border:1px solid #7b341e;border-radius:8px;padding:6px 10px;font-size:0.8rem;color:#fc8181;line-height:1.6">
+            &#10060; <em>"I don't have enough context<br>to summarise previous queries"</em>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#374151;color:#d1d5db;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0">Agent</div>
+          <div style="background:#0d2318;border:1px solid #276749;border-radius:8px;padding:6px 10px;font-size:0.8rem;color:#a0aec0;line-height:1.6">
+            <span style="color:#68d391">&#10004; No tool calls needed</span><br>
+            <span style="color:#e2e8f0">Lists all 3 issues from memory:</span><br>
+            1. Campaign PAUSED<br>
+            2. Bid $0.95 below floor $1.20<br>
+            3. Pacing mode = ASAP (fix: EVEN)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">How thread_id links turns together</div>
+    <div class="arch-box"><span class="highlight">graph.py — add checkpointer to compile()</span>
+
+  from langgraph.checkpoint.memory import MemorySaver
+  compiled = graph.compile(<span class="green-text">checkpointer=MemorySaver()</span>)
+
+<span class="highlight">routes.py — pass thread_id per session</span>
+
+  result = await agent.ainvoke(
+      {"messages": [HumanMessage(content=user_text)]},
+      config={"configurable": {<span class="green-text">"thread_id": body.advertiser_id</span>}}
+  )
+
+<span class="yellow-text">thread_id options:</span>
+  advertiser_id  → one shared memory per advertiser (across all their campaigns)
+  session_id     → one memory per browser tab / API session
+  ticket_id      → one memory per support conversation thread</div>
+
+    <div style="margin-top:12px;background:#0d1117;border-left:3px solid #68d391;border-radius:0 6px 6px 0;padding:10px 14px;font-size:0.82rem;color:#a0aec0;line-height:1.65">
+      <span style="color:#68d391;font-weight:600">Enabled:</span>
+      Multi-turn memory is <strong style="color:#e2e8f0">active in this project</strong>.
+      Toggle the <strong style="color:#e2e8f0">Multi-turn Memory</strong> switch in New Query to turn it on.
+      When ON, the same <code style="color:#b794f4">thread_id</code> is sent with every query — agent accumulates history across clicks.
+      When OFF, a unique <code style="color:#b794f4">thread_id</code> is generated per request (fresh state every time).
+    </div>
+
+    <div class="section-title" style="margin-top:20px">Where the checkpoint is stored</div>
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;overflow:hidden;font-size:0.82rem;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:1fr 1.4fr 1fr 1.6fr;background:#161b22;padding:8px 14px;font-size:0.72rem;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.07em;gap:8px">
+        <div>Environment</div><div>Checkpointer</div><div>Stored in</div><div>Survives restart?</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.4fr 1fr 1.6fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px;align-items:center">
+        <div style="color:#93c5fd">dev (current)</div>
+        <div><code style="color:#b794f4;font-size:0.78rem">MemorySaver</code></div>
+        <div style="color:#a0aec0">RAM (Python dict)</div>
+        <div style="color:#fc8181">&#10060; Lost on restart</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.4fr 1fr 1.6fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px;align-items:center">
+        <div style="color:#93c5fd">dev (persistent)</div>
+        <div><code style="color:#b794f4;font-size:0.78rem">AsyncSqliteSaver</code></div>
+        <div style="color:#a0aec0">checkpoints.sqlite</div>
+        <div style="color:#68d391">&#10004; Survives restart</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.4fr 1fr 1.6fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px;align-items:center">
+        <div style="color:#93c5fd">prod (Cloud Run)</div>
+        <div><code style="color:#b794f4;font-size:0.78rem">AsyncPostgresSaver</code></div>
+        <div style="color:#a0aec0">Cloud SQL (same DB as tickets)</div>
+        <div style="color:#68d391">&#10004; Survives restart + scale-out</div>
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:14px;font-size:0.8rem;color:#a0aec0;line-height:1.7">
+      <div style="font-size:0.72rem;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">What gets saved per thread_id</div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 14px">
+        <span style="color:#f6c90e;font-family:monospace;font-size:0.78rem">messages</span>
+        <span>full history — HumanMessage, AIMessage, ToolMessage across all turns</span>
+        <span style="color:#f6c90e;font-family:monospace;font-size:0.78rem">versions_seen</span>
+        <span>which checkpoint version each channel last saw (conflict detection)</span>
+        <span style="color:#f6c90e;font-family:monospace;font-size:0.78rem">pending_sends</span>
+        <span>queued messages for human interrupt resume (empty when no interrupt)</span>
+        <span style="color:#f6c90e;font-family:monospace;font-size:0.78rem">step</span>
+        <span>total node executions so far in this thread</span>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;background:#0d1117;border-left:3px solid #f97316;border-radius:0 6px 6px 0;padding:10px 14px;font-size:0.82rem;color:#a0aec0;line-height:1.65">
+      <span style="color:#f97316;font-weight:600">Production recommendation:</span>
+      Use <code style="color:#b794f4">AsyncPostgresSaver</code> pointing at the same <strong style="color:#e2e8f0">Cloud SQL</strong> instance already used for tickets.
+      LangGraph creates its own tables (<code style="color:#b794f4">checkpoints</code>, <code style="color:#b794f4">checkpoint_blobs</code>, <code style="color:#b794f4">checkpoint_writes</code>) — no conflict with the tickets table.
+      <code style="color:#b794f4">MemorySaver</code> on Cloud Run with 2+ instances means each instance has separate RAM — same <code style="color:#b794f4">thread_id</code> routed to different instances loses history.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Human Interrupt (interrupt_before / interrupt_after)</h2>
+
+    <div class="section-title">What problem it solves</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="background:#0d1117;border:1px solid #7b341e;border-radius:8px;padding:14px;font-size:0.8rem;color:#a0aec0;line-height:1.7">
+        <div style="font-size:0.72rem;font-weight:700;color:#fc8181;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">&#10060; Without interrupt</div>
+        Agent calls tools <strong style="color:#e2e8f0">automatically</strong> — no human sees the plan before it runs<br><br>
+        <code style="color:#f6c90e;font-size:0.78rem">getCampaignStatus</code> &rarr; <code style="color:#f6c90e;font-size:0.78rem">deleteCampaign</code> &rarr; <span style="color:#fc8181">done — irreversible</span>
+      </div>
+      <div style="background:#0d1117;border:1px solid #276749;border-radius:8px;padding:14px;font-size:0.8rem;color:#a0aec0;line-height:1.7">
+        <div style="font-size:0.72rem;font-weight:700;color:#68d391;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">&#10004; With interrupt_before=["tools"]</div>
+        Graph <strong style="color:#e2e8f0">pauses</strong> before ToolNode — human reviews the plan<br><br>
+        Agent plans <code style="color:#f6c90e;font-size:0.78rem">deleteCampaign</code> &rarr; <span style="color:#68d391">human approves / rejects</span> &rarr; then executes
+      </div>
+    </div>
+
+    <div class="section-title">interrupt_before vs interrupt_after</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:14px">
+        <div style="font-size:0.72rem;font-weight:700;color:#7f9cf5;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">interrupt_before=["tools"]</div>
+        <div style="font-family:monospace;font-size:0.78rem;color:#a0aec0;line-height:2">
+          <span style="color:#e2e8f0">[agent]</span> decides tool plan<br>
+          <span style="color:#f97316">&#9646; PAUSE</span> <span style="color:#718096">— human sees pending tool_calls</span><br>
+          <span style="color:#718096">&darr; approved</span><br>
+          <span style="color:#e2e8f0">[tools]</span> executes<br>
+          <span style="color:#e2e8f0">[agent]</span> forms answer
+        </div>
+        <div style="margin-top:10px;font-size:0.78rem;color:#718096">Use when: approve <em>which tools</em> run before execution</div>
+      </div>
+      <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:14px">
+        <div style="font-size:0.72rem;font-weight:700;color:#7f9cf5;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">interrupt_after=["tools"]</div>
+        <div style="font-family:monospace;font-size:0.78rem;color:#a0aec0;line-height:2">
+          <span style="color:#e2e8f0">[agent]</span> decides tool plan<br>
+          <span style="color:#e2e8f0">[tools]</span> executes<br>
+          <span style="color:#f97316">&#9646; PAUSE</span> <span style="color:#718096">— human sees tool results</span><br>
+          <span style="color:#718096">&darr; approved</span><br>
+          <span style="color:#e2e8f0">[agent]</span> forms answer
+        </div>
+        <div style="margin-top:10px;font-size:0.78rem;color:#718096">Use when: review <em>tool results</em> before agent answers</div>
+      </div>
+    </div>
+
+    <div class="section-title">Step-by-step execution flow (interrupt_before)</div>
+
+    <!-- Step 1 -->
+    <div style="display:flex;gap:0;margin-bottom:3px">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:12px">
+        <div style="background:#4c51bf;color:#fff;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+        <div style="width:2px;background:#2d3748;flex:1;margin-top:3px"></div>
+      </div>
+      <div style="background:#161b22;border:1px solid #2d3748;border-radius:8px;padding:10px 14px;flex:1;margin-bottom:3px">
+        <div style="font-size:0.75rem;font-weight:600;color:#7f9cf5;margin-bottom:4px">POST /api/v1/support/query &nbsp;<span style="color:#718096;font-weight:400">— client starts the graph</span></div>
+        <div style="font-family:monospace;font-size:0.78rem;color:#a0aec0;line-height:1.7">
+          agent.ainvoke(&#123;"messages": [HumanMessage("CMP-4491 not delivering")]&#125;,<br>
+          &nbsp;&nbsp;config=&#123;"configurable": &#123;"thread_id": "t1"&#125;&#125;)<br>
+          <span style="color:#718096">→ [agent node] runs: LLM decides getCampaignStatus + getHourlySpend</span><br>
+          <span style="color:#718096">→ hits [tools node] → interrupt_before fires → graph</span> <span style="color:#f97316">SUSPENDS</span><br>
+          <span style="color:#718096">→ state saved to MemorySaver under thread_id "t1"</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div style="display:flex;gap:0;margin-bottom:3px">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:12px">
+        <div style="background:#f97316;color:#fff;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+        <div style="width:2px;background:#2d3748;flex:1;margin-top:3px"></div>
+      </div>
+      <div style="background:#1a1200;border:1px solid #744210;border-radius:8px;padding:10px 14px;flex:1;margin-bottom:3px">
+        <div style="font-size:0.75rem;font-weight:600;color:#f97316;margin-bottom:4px">Response to client &nbsp;<span style="color:#718096;font-weight:400">— graph is paused here</span></div>
+        <div style="font-family:monospace;font-size:0.78rem;color:#a0aec0;line-height:1.7">
+          &#123;<br>
+          &nbsp;&nbsp;"thread_id": "t1",<br>
+          &nbsp;&nbsp;"status": "AWAITING_APPROVAL",<br>
+          &nbsp;&nbsp;"pending_tools": [<span style="color:#68d391">"getCampaignStatus"</span>, <span style="color:#68d391">"getHourlySpendCurve"</span>]<br>
+          &#125;<br>
+          <span style="color:#718096">Human sees the tool list in the UI — decides approve or reject</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3a approve -->
+    <div style="display:flex;gap:0;margin-bottom:3px">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:12px">
+        <div style="background:#276749;color:#fff;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+        <div style="width:2px;background:#2d3748;flex:1;margin-top:3px"></div>
+      </div>
+      <div style="background:#0d2318;border:1px solid #276749;border-radius:8px;padding:10px 14px;flex:1;margin-bottom:3px">
+        <div style="font-size:0.75rem;font-weight:600;color:#68d391;margin-bottom:4px">POST /api/v1/support/resume &nbsp;<span style="color:#718096;font-weight:400">— human approves</span></div>
+        <div style="font-family:monospace;font-size:0.78rem;color:#a0aec0;line-height:1.7">
+          agent.ainvoke(<span style="color:#68d391">Command(resume=None)</span>,<br>
+          &nbsp;&nbsp;config=&#123;"configurable": &#123;"thread_id": "t1"&#125;&#125;)<br>
+          <span style="color:#718096">→ graph loads checkpoint for "t1" from MemorySaver</span><br>
+          <span style="color:#718096">→ resumes from [tools node] — NOT from the start</span><br>
+          <span style="color:#718096">→ getCampaignStatus + getHourlySpend execute in parallel</span><br>
+          <span style="color:#718096">→ [agent node] sees results, forms final answer</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3b reject -->
+    <div style="display:flex;gap:0;margin-bottom:14px">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:12px">
+        <div style="background:#7b341e;color:#fff;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+      </div>
+      <div style="background:#2d1515;border:1px solid #7b341e;border-radius:8px;padding:10px 14px;flex:1">
+        <div style="font-size:0.75rem;font-weight:600;color:#fc8181;margin-bottom:4px">POST /api/v1/support/resume &nbsp;<span style="color:#718096;font-weight:400">— human rejects / overrides</span></div>
+        <div style="font-family:monospace;font-size:0.78rem;color:#a0aec0;line-height:1.7">
+          agent.ainvoke(<span style="color:#fc8181">Command(resume=&#123;"messages": [HumanMessage("Use KB only")]&#125;)</span>,<br>
+          &nbsp;&nbsp;config=&#123;"configurable": &#123;"thread_id": "t1"&#125;&#125;)<br>
+          <span style="color:#718096">→ injects override message — agent replans without the tools</span><br>
+          <span style="color:#718096">→ answers from searchKnowledgeBase only</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Code changes needed in this project</div>
+    <div class="arch-box"><span class="highlight">graph.py — add interrupt_before to compile()</span>
+
+  compiled = graph.compile(
+      checkpointer=MemorySaver(),
+      <span class="green-text">interrupt_before=["tools"]</span>   <span class="yellow-text"># pause BEFORE ToolNode executes</span>
+  )
+
+<span class="highlight">routes.py — two endpoints instead of one</span>
+
+  <span class="yellow-text"># Endpoint 1 — start query, graph pauses at tools node</span>
+  @router.post("/api/v1/support/query")
+  async def submit_query(body: QueryRequest, ...):
+      effective_thread_id = body.thread_id or str(uuid.uuid4())
+      await agent.ainvoke(
+          &#123;"messages": [HumanMessage(body.query)]&#125;,
+          config=&#123;"configurable": &#123;"thread_id": effective_thread_id&#125;&#125;
+      )
+      state = await agent.aget_state(&#123;"configurable": &#123;"thread_id": effective_thread_id&#125;&#125;)
+      pending = [tc["name"] for tc in state.values["messages"][-1].tool_calls]
+      return &#123;"thread_id": effective_thread_id, "status": "AWAITING_APPROVAL",
+               "pending_tools": pending&#125;
+
+  <span class="yellow-text"># Endpoint 2 — resume after human decision</span>
+  @router.post("/api/v1/support/resume")
+  async def resume_query(body: ResumeRequest, ...):
+      config = &#123;"configurable": &#123;"thread_id": body.thread_id&#125;&#125;
+      if body.approved:
+          result = await agent.ainvoke(<span class="green-text">Command(resume=None)</span>, config=config)
+      else:
+          result = await agent.ainvoke(
+              <span class="red-text">Command(resume=&#123;"messages": [HumanMessage("Skip tools. Answer from KB.")]&#125;)</span>,
+              config=config
+          )
+      final_answer, tools_used = extract_results(result["messages"])
+      return &#123;"answer": final_answer, "tools_used": tools_used&#125;</div>
+
+    <div class="section-title">How it relates to Multi-turn Memory</div>
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;overflow:hidden;font-size:0.82rem;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1.4fr;background:#161b22;padding:8px 14px;font-size:0.71rem;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.07em;gap:8px">
+        <div></div><div>MemorySaver</div><div>thread_id</div><div>Completes fully</div><div>Use case</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1.4fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px;align-items:center">
+        <div style="color:#7f9cf5;font-weight:600">Multi-turn Memory</div>
+        <div style="color:#68d391">required</div>
+        <div style="color:#68d391">required</div>
+        <div style="color:#68d391">yes — per click</div>
+        <div style="color:#a0aec0">remember context across queries</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1.4fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px;align-items:center">
+        <div style="color:#f97316;font-weight:600">Human Interrupt</div>
+        <div style="color:#68d391">required</div>
+        <div style="color:#68d391">required</div>
+        <div style="color:#fc8181">no — pauses mid-graph</div>
+        <div style="color:#a0aec0">approve tools before they run</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px;background:#0d1117;border-left:3px solid #68d391;border-radius:0 6px 6px 0;padding:10px 14px;font-size:0.82rem;color:#a0aec0;line-height:1.65">
+      <span style="color:#68d391;font-weight:600">Enabled in this project.</span>
+      Toggle <strong style="color:#e2e8f0">Human Interrupt</strong> (orange bar) in New Query tab.
+      Implemented as two endpoints: <code style="color:#b794f4">POST /api/v1/support/query</code> (starts + pauses)
+      and <code style="color:#b794f4">POST /api/v1/support/query/resume</code> (approve or reject).
+      Uses <code style="color:#b794f4">agent_hi</code> — a second compiled graph with <code style="color:#b794f4">interrupt_before=["tools"]</code>.
+    </div>
+
+    <div class="section-title">How to test in the UI</div>
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:10px;overflow:hidden;margin-bottom:0">
+
+      <!-- Step 1 -->
+      <div style="display:flex;gap:0;padding:12px 14px;border-bottom:1px solid #1e2533;align-items:flex-start">
+        <div style="background:#4c51bf;color:#fff;font-size:0.7rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;margin-top:1px">1</div>
+        <div style="font-size:0.82rem;color:#a0aec0;line-height:1.6">
+          Go to <strong style="color:#e2e8f0">New Query</strong> tab &rarr; find the orange
+          <strong style="color:#f6ad55">Human Interrupt</strong> bar below the memory toggle &rarr; flip it <strong style="color:#e2e8f0">ON</strong>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div style="display:flex;gap:0;padding:12px 14px;border-bottom:1px solid #1e2533;align-items:flex-start">
+        <div style="background:#4c51bf;color:#fff;font-size:0.7rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;margin-top:1px">2</div>
+        <div style="font-size:0.82rem;color:#a0aec0;line-height:1.6">
+          Enter query: <code style="color:#93c5fd;font-size:0.8rem">My campaign CMP-4491 is not delivering</code>
+          &nbsp;+ Campaign ID <code style="color:#93c5fd;font-size:0.8rem">CMP-4491</code> &rarr; click <strong style="color:#e2e8f0">Run Agent</strong>
+        </div>
+      </div>
+
+      <!-- Step 3 — pause -->
+      <div style="display:flex;gap:0;padding:12px 14px;border-bottom:1px solid #1e2533;align-items:flex-start;background:#1a0f00">
+        <div style="background:#f97316;color:#fff;font-size:0.7rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;margin-top:1px">3</div>
+        <div style="font-size:0.82rem;color:#a0aec0;line-height:1.6">
+          <strong style="color:#f97316">Agent Paused</strong> — orange approval panel appears showing pending tools:<br>
+          <span style="display:inline-flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+            <span style="background:#1a1200;border:1px solid #744210;color:#f6ad55;font-size:0.75rem;padding:2px 8px;border-radius:4px;font-family:monospace">getCampaignStatus</span>
+            <span style="background:#1a1200;border:1px solid #744210;color:#f6ad55;font-size:0.75rem;padding:2px 8px;border-radius:4px;font-family:monospace">getHourlySpendCurve</span>
+            <span style="background:#1a1200;border:1px solid #744210;color:#f6ad55;font-size:0.75rem;padding:2px 8px;border-radius:4px;font-family:monospace">getPacingSettings</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Step 4a — approve -->
+      <div style="display:flex;gap:0;padding:12px 14px;border-bottom:1px solid #1e2533;align-items:flex-start;background:#0a1a0a">
+        <div style="background:#276749;color:#fff;font-size:0.7rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;margin-top:1px">4a</div>
+        <div style="font-size:0.82rem;color:#a0aec0;line-height:1.6">
+          Click <strong style="color:#68d391">&#10003; Approve — Run Tools</strong><br>
+          Agent resumes from checkpoint &rarr; tools execute in parallel &rarr; final answer with
+          <code style="color:#f6c90e;font-size:0.78rem">PAUSED + bid below floor + budget exhaustion</code> root causes
+        </div>
+      </div>
+
+      <!-- Step 4b — reject -->
+      <div style="display:flex;gap:0;padding:12px 14px;align-items:flex-start;background:#1a0505">
+        <div style="background:#7b341e;color:#fff;font-size:0.7rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;margin-top:1px">4b</div>
+        <div style="font-size:0.82rem;color:#a0aec0;line-height:1.6">
+          <em>Or</em> click <strong style="color:#fc8181">&#10007; Reject — KB Only</strong><br>
+          Override injected: <em>"Skip tool execution. Answer using knowledge base only."</em><br>
+          Agent answers from ChromaDB docs — <strong style="color:#e2e8f0">zero tool calls</strong>, answer based on KB articles only
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Knowledge Base — Dual Provider</h2>
+    <div class="arch-box">
+<span class="highlight">KB_PROVIDER=local  (default, dev Mac)</span>
+
+  searchKnowledgeBase tool
+    └─► <span class="green-text">_do_kb_search_local()</span>
+          └─► ChromaDB  (./chroma_db/)
+                └─► embedded vector search
+                      seeds from kb-docs/ (10 JSON docs)
+                      model: all-MiniLM-L6-v2
+                      first call: downloads ~90MB once
+                      subsequent: instant from disk
+
+<span class="highlight">KB_PROVIDER=gcp  (production Cloud Run)</span>
+
+  searchKnowledgeBase tool
+    └─► <span class="green-text">_do_kb_search_gcp()</span>
+          └─► Vertex AI Search  (Discovery Engine)
+                └─► datastore: adtech-kb
+                      serving config: default_search
+                      setup once: ./setup-kb.sh
+                      credentials: ADC (auto on Cloud Run)
+
+<span class="yellow-text">KB tool runs inside the client — NOT on the MCP server.</span>
+<span class="yellow-text">python-adtech-mcp-server has zero AI / GCP dependencies.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>File Map</h2>
+    <div class="arch-box">
+<span class="highlight">python-adtech-mcp-client/</span>
+  app/config.py          ENV, LLM_PROVIDER, KB_PROVIDER, CORS_ORIGINS, API_KEY ...
+  app/main.py            FastAPI app, JSON logging, CORS, API key middleware
+  app/agent/
+    graph.py             build_agent_graph()   StateGraph + ToolNode
+    tools.py             create_mcp_tools()    22 HTTP tools → :8082
+                         create_kb_tool()      searchKnowledgeBase (local/gcp)
+    prompts.py           SYSTEM_PROMPT
+  app/api/routes.py      POST /api/v1/support/query
+                         GET  /api/v1/support/tickets
+  app/db/
+    database.py          SQLAlchemy async engine (SQLite dev / Cloud SQL prod)
+    models.py            Ticket model
+  kb-docs/               10 JSON documents (seeded into ChromaDB locally)
+  setup-kb.sh            Creates Vertex AI Search datastore on GCP
+
+<span class="highlight">python-adtech-mcp-server/</span>
+  app/registry/
+    tool_registry.py     22 ToolDefinition records
+  app/executor/
+    tool_dispatcher.py   match tool_name → api module (no AI, no GCP)
+  app/apis/
+    campaign_api.py      getCampaignStatus, getHourlySpendCurve, ...
+    deal_api.py          getDealStatus, getDealBidStream, getSeatMapping
+    segment_api.py       getSegmentStatus, getSegmentUploadLog
+    creative_api.py      getCreativeStatus, getCreativeAsset
+    pixel_api.py         getPixelFireLog, getAttributionWindowSettings, ...
+    brand_safety_api.py  getBrandSafetySettings, getPlacementReport
+    fraud_api.py         getClickLog, getIVTReport
+    reporting_api.py     getDSPImpressionReport, getGAMReport, getDiscrepancyLog
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Cloud Run Deployment</h2>
+    <div class="arch-box">
+  Browser
+    │  HTTPS :443
+    ▼
+  <span class="green-text">python-adtech-mcp-client</span>  (Cloud Run)
+    │  ENV=prod  LLM_PROVIDER=vertex  KB_PROVIDER=gcp
+    │  memory=1Gi  cpu=2  min-instances=1
+    │
+    ├─► <span class="yellow-text">Vertex AI Gemini 2.0 Flash</span>  (LLM — via ADC)
+    │
+    ├─► <span class="purple-text">Vertex AI Search</span>  (searchKnowledgeBase — via ADC)
+    │     datastore: adtech-kb
+    │
+    ├─► <span class="yellow-text">Cloud SQL PostgreSQL</span>  (tickets — via Cloud SQL Auth Proxy)
+    │
+    └─► POST /mcp/tools/{name}
+          │
+          ▼
+        <span class="green-text">python-adtech-mcp-server</span>  (Cloud Run)
+          │  memory=256Mi  cpu=2  min-instances=1
+          └─► 22 mock AdTech tool responses
+
+  Secrets (Secret Manager):
+    GROQ_API_KEY   → groq-api-key       (Groq mode only)
+    API_KEY        → adtech-api-key     (optional auth)
+    </div>
+  </div>
+</div>
+
+<!-- REAL MCP -->
+<div class="page" id="page-realmcp">
+
+  <div class="card">
+    <h2>RealMCP — Server / Client</h2>
+    <p style="color:#a0aec0;margin-bottom:20px">
+      This project uses a <strong style="color:#e2e8f0">custom HTTP REST pattern</strong> to call tools on the MCP server.
+      The <code style="color:#b794f4">real-python-adtech-mcp-server</code> and <code style="color:#b794f4">real-python-adtech-mcp-client</code>
+      replace that with the <strong style="color:#e2e8f0">official Anthropic MCP protocol</strong> — JSON-RPC 2.0 over SSE transport.
+    </p>
+
+    <!-- Why rewrite -->
+    <h3 style="color:#7f9cf5;margin-bottom:12px">Why python-adtech-mcp-server → real-python-adtech-mcp-server?</h3>
+    <p style="color:#a0aec0;margin-bottom:12px">
+      The difference is <strong style="color:#e2e8f0">not AI</strong> — both servers are AI-free, expose the same 22 tools, and use the same mock <code style="color:#b794f4">apis/</code> data.
+      The rewrite is about the <strong style="color:#e2e8f0">protocol</strong> used to expose those tools.
+    </p>
+    <table style="margin-bottom:16px">
+      <thead><tr><th></th><th>python-adtech-mcp-server</th><th>real-python-adtech-mcp-server</th></tr></thead>
+      <tbody>
+        <tr><td>Tools / data</td><td>22 tools, mock apis/</td><td>Same 22 tools, same mock apis/</td></tr>
+        <tr><td>Protocol</td><td>Custom HTTP REST <span style="color:#718096">(invented by us)</span></td><td>Official MCP — JSON-RPC 2.0 over SSE</td></tr>
+        <tr><td>Who can connect</td><td>Only our custom client</td><td><strong style="color:#68d391">Any</strong> MCP-compatible client</td></tr>
+      </tbody>
+    </table>
+    <p style="color:#a0aec0;margin-bottom:8px">
+      Because <code style="color:#b794f4">real-python-adtech-mcp-server</code> speaks standard MCP, these clients connect with <strong style="color:#e2e8f0">zero changes</strong>:
+    </p>
+    <ul style="color:#a0aec0;line-height:2;padding-left:20px;margin-bottom:8px">
+      <li><strong style="color:#e2e8f0">Claude Desktop</strong> — add it to <code>claude_desktop_config.json</code></li>
+      <li><strong style="color:#e2e8f0">Claude Code</strong> — add it to <code>.claude/mcp_servers</code></li>
+      <li><strong style="color:#e2e8f0">Any LangChain app</strong> using <code>langchain-mcp-adapters</code></li>
+      <li><strong style="color:#e2e8f0">Any future MCP client</strong> — VS Code extensions, other AI agents, etc.</li>
+    </ul>
+    <p style="color:#718096;margin-bottom:24px;font-size:0.88rem">
+      With <code>python-adtech-mcp-server</code>, only <code>python-adtech-mcp-client</code> can talk to it — nothing else knows the
+      <code>GET /mcp/tools</code> + <code>POST /mcp/tools/{name}</code> pattern we invented.
+    </p>
+
+    <!-- Dependency + Communication -->
+    <h3 style="color:#7f9cf5;margin-bottom:12px">Dependency &amp; Communication</h3>
+
+    <!-- Dependency direction -->
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:18px 24px;margin-bottom:16px;font-family:monospace;font-size:0.85rem">
+      <div style="color:#a0aec0;margin-bottom:8px">Dependency direction: Client depends on Server — not the other way.</div>
+      <div style="color:#63b3ed">real-python-adtech-mcp-client &nbsp;<span style="color:#68d391">──depends on──►</span>&nbsp; real-python-adtech-mcp-server</div>
+      <div style="color:#718096;margin-top:8px;font-size:0.78rem">The server knows nothing about the client. The client knows the server's SSE URL.</div>
+    </div>
+
+    <!-- Full communication flow -->
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:20px 24px;margin-bottom:24px;font-family:monospace;font-size:0.8rem;line-height:1.9">
+      <div style="color:#63b3ed;font-weight:700;margin-bottom:6px">CLIENT startup (port 8084)</div>
+      <div style="color:#718096">│</div>
+      <div style="color:#718096">├─ <span style="color:#f6ad55">1.</span> <span style="color:#63b3ed">GET http://localhost:8085/sse</span></div>
+      <div style="color:#718096">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └─ opens persistent HTTP connection — stays open entire app lifetime</div>
+      <div style="color:#718096">│</div>
+      <div style="color:#718096">├─ <span style="color:#f6ad55">2.</span> Server responds: here are my 22 tools <span style="color:#4a5568">(JSON-RPC tools/list)</span></div>
+      <div style="color:#718096">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └─ <span style="color:#68d391">MultiServerMCPClient.get_tools()</span> returns LangChain tool objects</div>
+      <div style="color:#718096">│</div>
+      <div style="color:#718096">├─ <span style="color:#f6ad55">3.</span> LangGraph agent built with those 22 tools + KB tool</div>
+      <div style="color:#718096">│</div>
+      <div style="color:#4a5568">│&nbsp;&nbsp; [User submits a query]</div>
+      <div style="color:#718096">│</div>
+      <div style="color:#718096">├─ <span style="color:#f6ad55">4.</span> LLM decides: call <span style="color:#b794f4">getCampaignStatus</span>(campaignId="CMP-001")</div>
+      <div style="color:#718096">│</div>
+      <div style="color:#718096">├─ <span style="color:#f6ad55">5.</span> <span style="color:#f6ad55">POST http://localhost:8085/messages</span></div>
+      <div style="color:#718096">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └─ <span style="color:#4a5568">{method: "tools/call", params: {name: "getCampaignStatus", arguments: {...}}}</span></div>
+      <div style="color:#718096">│</div>
+      <div style="color:#718096">├─ <span style="color:#f6ad55">6.</span> Server executes: <span style="color:#68d391">campaign_api.get_campaign_status("CMP-001")</span> → dict</div>
+      <div style="color:#718096">│</div>
+      <div style="color:#718096">├─ <span style="color:#f6ad55">7.</span> Result pushed back over the open SSE stream → client receives it</div>
+      <div style="color:#718096">│</div>
+      <div style="color:#718096">└─ <span style="color:#f6ad55">8.</span> LLM reads result, generates final answer</div>
+    </div>
+
+    <!-- What if server is down -->
+    <h4 style="color:#a0aec0;margin-bottom:10px">What happens if the server is down?</h4>
+    <table style="margin-bottom:24px">
+      <thead><tr><th>Scenario</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Server down at startup</td><td>Client starts but has 0 MCP tools — only KB tool works</td></tr>
+        <tr><td>Server goes down mid-session</td><td>Tool calls fail, LangGraph returns error to LLM</td></tr>
+        <tr><td>Server never started</td><td><code>create_mcp_tools()</code> throws → warning logged, agent runs with KB only</td></tr>
+      </tbody>
+    </table>
+    <p style="color:#718096;font-size:0.85rem;margin-bottom:24px">
+      The server is <strong style="color:#e2e8f0">stateless</strong> — it holds no session, no memory, no user context.
+      Every tool call is independent. All state (thread_id, conversation history, checkpoints) lives entirely in the client's <code style="color:#b794f4">MemorySaver</code>.
+    </p>
+
+    <!-- Old vs New -->
+    <h3 style="color:#7f9cf5;margin-bottom:12px">Old Pattern vs Real MCP</h3>
+    <table style="margin-bottom:24px">
+      <thead><tr><th>Aspect</th><th>python-adtech-mcp-server (this project)</th><th>real-python-adtech-mcp-server</th></tr></thead>
+      <tbody>
+        <tr><td>Protocol</td><td>Custom HTTP REST</td><td>MCP — JSON-RPC 2.0</td></tr>
+        <tr><td>Tool discovery</td><td><code>GET /mcp/tools</code> — one-shot</td><td>MCP <code>tools/list</code> over SSE stream</td></tr>
+        <tr><td>Tool call</td><td><code>POST /mcp/tools/{name}</code> — one-shot</td><td>MCP <code>tools/call</code> over SSE stream</td></tr>
+        <tr><td>Connection</td><td>New HTTP request per tool call</td><td>Single persistent SSE connection</td></tr>
+        <tr><td>Server framework</td><td>FastAPI + custom dispatcher</td><td>FastMCP + <code>@mcp.tool()</code> decorator</td></tr>
+        <tr><td>Client adapter</td><td>Custom <code>StructuredTool</code> builder</td><td><code>langchain-mcp-adapters</code> MultiServerMCPClient</td></tr>
+        <tr><td>Port</td><td>8082</td><td>8085</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Protocol deep dive -->
+    <h3 style="color:#7f9cf5;margin-bottom:16px">Protocol Explained</h3>
+
+    <!-- Custom REST -->
+    <div style="margin-bottom:20px">
+      <div style="color:#fc8181;font-weight:700;font-size:0.88rem;margin-bottom:10px">Custom HTTP REST — what we invented</div>
+      <p style="color:#a0aec0;margin-bottom:10px">We made up our own API contract. Anyone wanting to use it has to read our code to know it exists.</p>
+      <pre style="background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:14px;font-size:0.78rem;color:#e2e8f0;overflow-x:auto;margin-bottom:8px"># Step 1 — discover what tools exist
+GET /mcp/tools
+→ returns our custom JSON: [{name, description, parameters}, ...]
+
+# Step 2 — call a tool
+POST /mcp/tools/getCampaignStatus
+Body: {"campaignId": "CMP-001"}
+→ returns our custom JSON: {status, budget, ...}</pre>
+      <p style="color:#718096;font-size:0.82rem">No standard. No spec. No other tool knows this format.</p>
+    </div>
+
+    <!-- Official MCP -->
+    <div style="margin-bottom:20px">
+      <div style="color:#68d391;font-weight:700;font-size:0.88rem;margin-bottom:10px">Official MCP — JSON-RPC 2.0 over SSE</div>
+      <p style="color:#a0aec0;margin-bottom:10px">Two established standards bolted together:</p>
+      <p style="color:#a0aec0;margin-bottom:8px"><strong style="color:#e2e8f0">JSON-RPC 2.0</strong> — a universal standard for calling functions over HTTP. Every message has the same shape:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <div style="color:#63b3ed;font-size:0.75rem;margin-bottom:4px">Request (client → server)</div>
+          <pre style="background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:12px;font-size:0.76rem;color:#e2e8f0;overflow-x:auto;margin:0">{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "getCampaignStatus",
+    "arguments": {
+      "campaignId": "CMP-001"
+    }
+  }
+}</pre>
+        </div>
+        <div>
+          <div style="color:#68d391;font-size:0.75rem;margin-bottom:4px">Response (server → client)</div>
+          <pre style="background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:12px;font-size:0.76rem;color:#e2e8f0;overflow-x:auto;margin:0">{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "status": "active",
+    "budget": 5000
+  }
+}</pre>
+        </div>
+      </div>
+      <p style="color:#a0aec0;margin-bottom:8px"><strong style="color:#e2e8f0">SSE</strong> — the transport layer. Instead of opening a new HTTP connection for every call, one connection stays open and the server pushes results through it.</p>
+      <p style="color:#a0aec0;margin-bottom:16px"><strong style="color:#e2e8f0">MCP</strong> combines them: use SSE as the pipe, JSON-RPC 2.0 as the message format, and defines specific method names (<code style="color:#b794f4">tools/list</code>, <code style="color:#b794f4">tools/call</code>, <code style="color:#b794f4">initialize</code>) that every MCP server must implement.</p>
+    </div>
+
+    <!-- Why it matters -->
+    <div style="margin-bottom:24px">
+      <div style="color:#f6ad55;font-weight:700;font-size:0.88rem;margin-bottom:10px">Why it matters</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;background:#0d1117;border:1px solid #2d3748;border-radius:8px;overflow:hidden;margin-bottom:12px;font-family:monospace;font-size:0.8rem">
+        <div style="padding:16px;border-right:1px solid #2d3748">
+          <div style="color:#fc8181;margin-bottom:10px;font-weight:700">Custom REST</div>
+          <div style="color:#718096;line-height:2">Only we know the format<br>Only our client works<br>We maintain the spec<br>Break it = our problem</div>
+        </div>
+        <div style="padding:16px">
+          <div style="color:#68d391;margin-bottom:10px;font-weight:700">Official MCP</div>
+          <div style="color:#a0aec0;line-height:2">Claude Desktop knows it<br>Claude Code knows it<br>Any LangChain app knows it<br>Community maintains the spec</div>
+        </div>
+      </div>
+      <p style="color:#718096;font-size:0.84rem">
+        Think of it like email — SMTP is the standard protocol, so Gmail, Outlook, and Apple Mail all talk to each other.
+        Our custom REST was like inventing our own email protocol that only works between two specific apps we built.
+      </p>
+    </div>
+
+    <!-- What is SSE -->
+    <h3 style="color:#7f9cf5;margin-bottom:12px">What is SSE (Server-Sent Events)?</h3>
+    <p style="color:#a0aec0;margin-bottom:12px">
+      A browser/HTTP standard where the server pushes a continuous stream of events to the client over a single long-lived HTTP connection.
+    </p>
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:20px;font-family:monospace;font-size:0.82rem;line-height:1.8;margin-bottom:24px">
+      <div style="color:#68d391">Client (real-python-adtech-mcp-client)</div>
+      <div style="color:#718096">        |</div>
+      <div style="color:#718096">        |  <span style="color:#63b3ed">GET http://localhost:8085/sse</span>   <span style="color:#4a5568">← opens persistent connection</span></div>
+      <div style="color:#718096">        |  <span style="color:#68d391">←─────────────────────────────</span>  <span style="color:#4a5568">server streams JSON-RPC messages back</span></div>
+      <div style="color:#718096">        |  <span style="color:#f6ad55">POST http://localhost:8085/messages</span>  <span style="color:#4a5568">← client sends tool calls</span></div>
+      <div style="color:#718096">        |</div>
+      <div style="color:#fc8181">Server (real-python-adtech-mcp-server)</div>
+    </div>
+
+    <!-- Why SSE -->
+    <h3 style="color:#7f9cf5;margin-bottom:12px">Why MCP Uses SSE Instead of Plain REST</h3>
+    <ul style="color:#a0aec0;line-height:2;padding-left:20px;margin-bottom:24px">
+      <li>The server needs to <strong style="color:#e2e8f0">push responses back asynchronously</strong> — SSE is designed for that</li>
+      <li><strong style="color:#e2e8f0">One persistent connection</strong> vs many round-trip HTTP requests per tool call</li>
+      <li>Standard HTTP — <strong style="color:#e2e8f0">no WebSocket complexity</strong>, works through proxies and load balancers</li>
+    </ul>
+
+    <!-- How it works in code -->
+    <h3 style="color:#7f9cf5;margin-bottom:12px">How It Works in Code</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div>
+        <div style="color:#68d391;font-size:0.8rem;margin-bottom:8px">SERVER — real-python-adtech-mcp-server/server.py</div>
+        <pre style="background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:14px;font-size:0.78rem;overflow-x:auto;color:#e2e8f0;margin:0">from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("adtech-mcp-server")
+
+@mcp.tool()
+def getCampaignStatus(
+    campaignId: str,
+    advertiserId: str = None
+) -> dict:
+    """Fetch live campaign status."""
+    return campaign_api.get_campaign_status(
+        campaignId
+    )
+
+# 22 tools total, same mock data
+# SSE endpoint: /sse
+uvicorn.run(mcp.sse_app(),
+            host="0.0.0.0", port=8085)</pre>
+      </div>
+      <div>
+        <div style="color:#63b3ed;font-size:0.8rem;margin-bottom:8px">CLIENT — real-python-adtech-mcp-client/app/agent/tools.py</div>
+        <pre style="background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:14px;font-size:0.78rem;overflow-x:auto;color:#e2e8f0;margin:0">from langchain_mcp_adapters.client \
+    import MultiServerMCPClient
+
+async def create_mcp_tools(url):
+    client = MultiServerMCPClient({
+        "adtech": {
+            "url": url + "/sse",
+            "transport": "sse",
+        }
+    })
+    await client.__aenter__()
+    # Returns standard LangChain tools
+    # — graph uses them identically
+    tools = client.get_tools()
+    return tools, client</pre>
+      </div>
+    </div>
+
+    <!-- Client comparison -->
+    <h3 style="color:#7f9cf5;margin-bottom:12px">Client Comparison — python-adtech-mcp-client vs real-python-adtech-mcp-client</h3>
+    <table style="margin-bottom:24px">
+      <thead><tr><th>Aspect</th><th>python-adtech-mcp-client (port 8080)</th><th>real-python-adtech-mcp-client (port 8084)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>MCP tool loading</td>
+          <td><code>fetch_mcp_tool_definitions()</code> → <code>GET /mcp/tools</code> (HTTP JSON)</td>
+          <td><code>MultiServerMCPClient</code> → <code>GET /sse</code> (official MCP protocol)</td>
+        </tr>
+        <tr>
+          <td>Tool execution</td>
+          <td>Custom <code>StructuredTool</code> wraps <code>POST /mcp/tools/{name}</code></td>
+          <td>LangChain tools returned directly by <code>client.get_tools()</code></td>
+        </tr>
+        <tr>
+          <td>Connection lifecycle</td>
+          <td>New HTTP request per tool call — stateless</td>
+          <td>SSE connection opened at startup, held open for app lifetime</td>
+        </tr>
+        <tr>
+          <td>Startup (main.py)</td>
+          <td><code>tool_defs = await fetch_mcp_tool_definitions(...)</code><br><code>tools = create_mcp_tools(tool_defs, url)</code></td>
+          <td><code>tools, mcp_client = await create_mcp_tools(url)</code></td>
+        </tr>
+        <tr>
+          <td>Shutdown cleanup</td>
+          <td>Nothing — each request was independent</td>
+          <td><code>await mcp_client.__aexit__(None, None, None)</code></td>
+        </tr>
+        <tr>
+          <td>LangGraph agent / graph</td>
+          <td colspan="2" style="text-align:center;color:#718096">Identical — same <code>graph.py</code>, same ReAct loop</td>
+        </tr>
+        <tr>
+          <td>Multi-turn memory</td>
+          <td colspan="2" style="text-align:center;color:#718096">Identical — MemorySaver + thread_id toggle</td>
+        </tr>
+        <tr>
+          <td>Human Interrupt</td>
+          <td colspan="2" style="text-align:center;color:#718096">Identical — interrupt_before=["tools"], /query/resume endpoint</td>
+        </tr>
+        <tr>
+          <td>UI (index.html)</td>
+          <td colspan="2" style="text-align:center;color:#718096">Identical — memory toggle, HI toggle, approval panel</td>
+        </tr>
+        <tr>
+          <td>Knowledge Base tool</td>
+          <td colspan="2" style="text-align:center;color:#718096">Identical — ChromaDB local / Vertex AI Search GCP</td>
+        </tr>
+        <tr>
+          <td>Dependencies added</td>
+          <td>—</td>
+          <td><code>mcp[cli]>=1.0.0</code>, <code>langchain-mcp-adapters>=0.1.0</code></td>
+        </tr>
+        <tr>
+          <td>MCP server it talks to</td>
+          <td>python-adtech-mcp-server (port 8082)</td>
+          <td>real-python-adtech-mcp-server (port 8085)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Ports -->
+    <h3 style="color:#7f9cf5;margin-bottom:12px">Project Ports</h3>
+    <table style="margin-bottom:24px">
+      <thead><tr><th>Project</th><th>Port</th><th>Key Endpoint</th></tr></thead>
+      <tbody>
+        <tr><td>python-adtech-mcp-server</td><td>8082</td><td><code>POST /mcp/tools/{name}</code> (custom REST)</td></tr>
+        <tr><td>python-adtech-mcp-client</td><td>8080</td><td><code>POST /api/v1/support/query</code></td></tr>
+        <tr><td>real-python-adtech-mcp-server</td><td><strong style="color:#68d391">8085</strong></td><td><code>GET /sse</code> (official MCP)</td></tr>
+        <tr><td>real-python-adtech-mcp-client</td><td><strong style="color:#68d391">8084</strong></td><td><code>POST /api/v1/support/query</code></td></tr>
+      </tbody>
+    </table>
+
+    <!-- How to run -->
+    <!-- Diagrams -->
+    <h3 style="color:#7f9cf5;margin-bottom:16px">Architecture Diagrams</h3>
+
+    <!-- High-level -->
+    <div class="diagram-wrap">
+      <div class="diagram-header">
+        <h3>High-Level — Connection Overview</h3>
+        <button class="btn-expand" onclick="openDiagram(this.closest('.diagram-wrap'))">⛶ Expand</button>
+      </div>
+      <p>How the two projects connect. User request flows left-to-right through client internals, then over SSE to the server and back.</p>
+      <div class="mermaid">
+graph LR
+    User(["User / Browser :8084"])
+
+    subgraph CLIENT["real-python-adtech-mcp-client :8084"]
+        direction TB
+        FA["FastAPI"]
+        AG["LangGraph ReAct Agent"]
+        MC["MultiServerMCPClient"]
+        KB["KB Tool"]
+        LLM["LLM Groq / Vertex AI"]
+        MEM["MemorySaver"]
+    end
+
+    subgraph SERVER["real-python-adtech-mcp-server :8085"]
+        direction TB
+        FMC["FastMCP + uvicorn"]
+        T22["22 mcp.tool functions"]
+        APIS["apis mock data"]
+    end
+
+    User -->|"POST /query"| FA
+    FA --> AG
+    AG <-->|"ReAct loop"| LLM
+    AG --> MC
+    AG --> KB
+    AG --- MEM
+    MC -->|"GET /sse persistent"| FMC
+    MC -->|"POST /messages tools/call"| FMC
+    FMC --> T22
+    T22 --> APIS
+    APIS -->|"dict result"| T22
+    T22 -->|"SSE stream"| MC
+
+    style CLIENT fill:#1a2332,stroke:#63b3ed,stroke-width:2px,color:#e2e8f0
+    style SERVER fill:#1a2e1a,stroke:#68d391,stroke-width:2px,color:#e2e8f0
+    style User fill:#2d3748,stroke:#7f9cf5,color:#e2e8f0
+      </div>
+    </div>
+
+    <!-- Low-level client -->
+    <div class="diagram-wrap">
+      <div class="diagram-header">
+        <h3>Low-Level — Client Internal Flow (real-python-adtech-mcp-client)</h3>
+        <button class="btn-expand" onclick="openDiagram(this.closest('.diagram-wrap'))">⛶ Expand</button>
+      </div>
+      <p>Step-by-step sequence from app startup through a full query cycle. Shows how MultiServerMCPClient, LangGraph, and the LLM interact.</p>
+      <div class="mermaid">
+sequenceDiagram
+    participant UV as uvicorn :8084
+    participant LS as lifespan main.py
+    participant MC as MultiServerMCPClient
+    participant AG as LangGraph Agent
+    participant LLM as LLM Groq/Vertex
+    participant FA as FastAPI routes
+    participant MEM as MemorySaver
+
+    Note over UV,MEM: App Startup
+    UV->>LS: start
+    LS->>MC: create_mcp_tools(mcp_server_url)
+    MC-->>LS: 22 LangChain tools + client handle
+    LS->>AG: build_agent_graph(llm, tools)
+    LS->>AG: build_agent_graph(llm, tools, human_interrupt=True)
+    AG-->>LS: agent + agent_hi compiled
+    LS-->>UV: app.state ready
+
+    Note over UV,MEM: User Query
+    FA->>FA: POST /api/v1/support/query
+    FA->>MEM: load checkpoint thread_id
+    FA->>AG: ainvoke messages config
+    AG->>LLM: which tool to call?
+    LLM-->>AG: tool_call getCampaignStatus
+    AG->>MC: execute tool
+    MC-->>AG: status budget result
+    AG->>LLM: here is the tool result
+    LLM-->>AG: final answer text
+    AG->>MEM: save checkpoint
+    AG-->>FA: result messages
+    FA-->>FA: save Ticket to DB
+    FA-->>UV: QueryResponse JSON
+      </div>
+    </div>
+
+    <!-- Low-level server -->
+    <div class="diagram-wrap">
+      <div class="diagram-header">
+        <h3>Low-Level — Server Internal Flow (real-python-adtech-mcp-server)</h3>
+        <button class="btn-expand" onclick="openDiagram(this.closest('.diagram-wrap'))">⛶ Expand</button>
+      </div>
+      <p>What happens inside the server from SSE connection through tool execution. No LLM involved — pure routing to mock api functions.</p>
+      <div class="mermaid">
+sequenceDiagram
+    participant CL as MultiServerMCPClient
+    participant UV as uvicorn :8085
+    participant FM as FastMCP sse_app
+    participant TF as mcp.tool function
+    participant AP as apis mock data
+
+    Note over CL,AP: Startup Handshake
+    CL->>UV: GET /sse
+    UV->>FM: open SSE stream
+    FM-->>CL: endpoint URL event
+    CL->>UV: POST /messages initialize
+    FM-->>CL: server info and capabilities
+    CL->>UV: POST /messages tools/list
+    FM-->>CL: 22 tool definitions
+
+    Note over CL,AP: Tool Call per agent step
+    CL->>UV: POST /messages tools/call getCampaignStatus
+    UV->>FM: route to tool handler
+    FM->>TF: getCampaignStatus CMP-001
+    TF->>AP: campaign_api.get_campaign_status
+    AP-->>TF: status active budget 5000
+    TF-->>FM: dict result
+    FM-->>CL: SSE event tool result JSON
+
+    Note over CL,AP: Shutdown
+    CL->>UV: mcp_client.__aexit__
+    UV->>FM: close SSE stream
+      </div>
+    </div>
+
+    <h3 style="color:#7f9cf5;margin-bottom:12px">How to Run</h3>
+    <pre style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:16px;font-size:0.82rem;color:#e2e8f0;overflow-x:auto"># Terminal 1 — MCP Server (port 8085)
+cd real-python-adtech-mcp-server
+python -m venv venv &amp;&amp; source venv/bin/activate
+pip install -r requirements.txt
+python server.py
+# → SSE endpoint live at http://localhost:8085/sse
+
+# Terminal 2 — MCP Client (port 8084)
+cd real-python-adtech-mcp-client
+python -m venv venv &amp;&amp; source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env    # fill in GROQ_API_KEY
+uvicorn app.main:app --reload --port 8084
+# → UI at http://localhost:8084</pre>
+  </div>
+
+</div>
+
+<!-- DIAGRAMS -->
+<div class="page" id="page-diagrams">
+
+  <div class="diagram-wrap">
+    <div class="diagram-header">
+      <h3>System Architecture Diagram</h3>
+      <button class="btn-expand" onclick="openDiagram(this.closest('.diagram-wrap'))">⛶ Expand</button>
+    </div>
+    <p>Full component view — browser through to GCP services. Shows both local dev (ChromaDB) and production (Vertex AI Search) KB paths.</p>
+    <div class="mermaid">
+graph TB
+    Browser(["🌐 Browser / curl"])
+
+    subgraph CLIENT["python-adtech-mcp-client  :8080"]
+        direction TB
+        FA["FastAPI\nroutes.py"]
+        AG["LangGraph Agent\ngraph.py"]
+        TM["MCP Tools ×22\nHTTP → :8082"]
+        TK["KB Tool ×1\nnative LangChain"]
+        DB[("SQLite\ntickets.db")]
+    end
+
+    subgraph SERVER["python-adtech-mcp-server  :8082"]
+        direction TB
+        MR["FastAPI\n/mcp/tools"]
+        TD["ToolDispatcher\ntool_dispatcher.py"]
+        subgraph APIS["22 API Modules"]
+            CA["campaign_api"]
+            DA["deal_api"]
+            SE["segment_api"]
+            CR["creative_api"]
+            PX["pixel_api"]
+            FR["fraud_api"]
+            RP["reporting_api"]
+        end
+    end
+
+    subgraph LLM["LLM Providers"]
+        GR["Groq\nllama-3.3-70b\n(dev)"]
+        VX["Vertex AI Gemini\ngemini-2.0-flash\n(prod)"]
+    end
+
+    subgraph KB["Knowledge Base"]
+        CH["ChromaDB\n./chroma_db\nKB_PROVIDER=local"]
+        VS["Vertex AI Search\nadtech-kb\nKB_PROVIDER=gcp"]
+    end
+
+    Browser -->|"POST /api/v1/support/query"| FA
+    FA --> AG
+    AG -->|"LLM call"| GR
+    AG -->|"LLM call"| VX
+    AG --> TM
+    AG --> TK
+    TM -->|"POST /mcp/tools/{name}"| MR
+    MR --> TD
+    TD --> CA & DA & SE & CR & PX & FR & RP
+    TK -->|"local dev"| CH
+    TK -->|"production"| VS
+    FA -->|"save ticket"| DB
+
+    style CLIENT fill:#1a1f2e,stroke:#4c51bf,color:#e2e8f0
+    style SERVER fill:#1a2535,stroke:#276749,color:#e2e8f0
+    style LLM fill:#1a1f2e,stroke:#744210,color:#e2e8f0
+    style KB fill:#1a1f2e,stroke:#553c9a,color:#e2e8f0
+    style APIS fill:#0d1117,stroke:#2d3748,color:#e2e8f0
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-header">
+      <h3>Sequence Diagram — Query Execution Flow</h3>
+      <button class="btn-expand" onclick="openDiagram(this.closest('.diagram-wrap'))">⛶ Expand</button>
+    </div>
+    <p>Step-by-step flow from user query to final answer. Shows the LangGraph ReAct loop, parallel tool execution via ToolNode, and ticket persistence.</p>
+    <div class="mermaid">
+sequenceDiagram
+    actor User
+    participant C as MCP Client :8080
+    participant LG as LangGraph Agent
+    participant LLM as LLM (Groq / Gemini)
+    participant TN as ToolNode (parallel)
+    participant S as MCP Server :8082
+    participant KB as KB Tool (ChromaDB / Vertex AI Search)
+    participant DB as Database (SQLite / Cloud SQL)
+
+    User->>C: POST /api/v1/support/query\n{query, campaignId, ...}
+    C->>LG: agent.ainvoke({messages: [HumanMessage]})
+
+    rect rgb(26, 31, 46)
+        Note over LG,TN: ReAct Loop (max 6 rounds)
+
+        LG->>LLM: messages → what tools to call?
+        LLM-->>LG: tool_calls [getCampaignStatus, getHourlySpendCurve, ...]
+
+        par Parallel Tool Execution (ToolNode)
+            TN->>S: POST /mcp/tools/getCampaignStatus\n{campaignId: "CMP-4491"}
+            S-->>TN: {status:"PAUSED", budget:"$0", bid:"$0.95"...}
+        and
+            TN->>S: POST /mcp/tools/getHourlySpendCurve\n{campaignId, days:3}
+            S-->>TN: {budgetHit:true, budgetHitTime:"08:03 AM"...}
+        and
+            TN->>S: POST /mcp/tools/getPacingSettings\n{campaignId}
+            S-->>TN: {pacingMode:"ASAP"...}
+        and
+            TN->>KB: searchKnowledgeBase\n{query:"campaign not delivering"}
+            KB-->>TN: {results:[doc-001, doc-003]...}
+        end
+
+        TN-->>LG: all tool results appended to messages
+
+        LG->>LLM: messages + tool results → synthesize answer
+        LLM-->>LG: final answer text (no tool_calls)
+    end
+
+    LG-->>C: {messages: [..., AIMessage(final answer)]}
+    C->>C: extract_results(messages)\n→ final_answer, tools_used
+    C->>DB: INSERT Ticket\n{id, query, answer, toolsUsed, status}
+    DB-->>C: saved
+    C-->>User: {ticketId, answer, toolsUsed,\nstatus:"RESOLVED_BY_AGENT", rounds:2}
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-header">
+      <h3>Deployment Architecture — GCP Cloud Run</h3>
+      <button class="btn-expand" onclick="openDiagram(this.closest('.diagram-wrap'))">⛶ Expand</button>
+    </div>
+    <p>Production deployment on Google Cloud Run. Both services scale to zero (dev) or keep min 1 instance warm (prod).</p>
+    <div class="mermaid">
+graph LR
+    subgraph Internet
+        U(["👤 User\nBrowser"])
+    end
+
+    subgraph GCP["Google Cloud Platform"]
+        subgraph CloudRun["Cloud Run  (us-central1)"]
+            subgraph CR_C["python-adtech-mcp-client\nmin=1  memory=1Gi  cpu=2"]
+                APP["FastAPI + LangGraph\nENV=prod\nLLM_PROVIDER=vertex\nKB_PROVIDER=gcp"]
+            end
+            subgraph CR_S["python-adtech-mcp-server\nmin=1  memory=256Mi  cpu=2"]
+                SRV["FastAPI\n22 AdTech tools"]
+            end
+        end
+
+        subgraph AI["AI Services"]
+            GEM["Vertex AI\nGemini 2.0 Flash\n(LLM)"]
+            VAS["Vertex AI Search\nadtech-kb\n(KB)"]
+        end
+
+        subgraph Storage["Storage"]
+            SQL[("Cloud SQL\nPostgreSQL\ntickets")]
+            GCS[("GCS Bucket\nkb-docs JSON")]
+        end
+
+        SM["Secret Manager\nGROQ_API_KEY\nAPI_KEY"]
+        CB["Cloud Build\nCI/CD"]
+        GCR["Container Registry\nDocker images"]
+    end
+
+    U -->|"HTTPS :443"| CR_C
+    APP -->|"POST /mcp/tools/{name}"| CR_S
+    APP -->|"ADC"| GEM
+    APP -->|"ADC"| VAS
+    APP -->|"Cloud SQL Auth Proxy"| SQL
+    VAS --- GCS
+    CB -->|"build + push"| GCR
+    GCR -->|"deploy"| CR_C & CR_S
+    APP -->|"read secrets"| SM
+
+    style GCP fill:#0d1117,stroke:#2d3748,color:#e2e8f0
+    style CloudRun fill:#1a1f2e,stroke:#276749,color:#e2e8f0
+    style AI fill:#1a1f2e,stroke:#553c9a,color:#e2e8f0
+    style Storage fill:#1a1f2e,stroke:#744210,color:#e2e8f0
+    style CR_C fill:#1c3a4a,stroke:#4c51bf,color:#e2e8f0
+    style CR_S fill:#1c3a2a,stroke:#276749,color:#e2e8f0
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-header">
+      <h3>Sequence Diagram — Server Startup &amp; Tool Discovery</h3>
+      <button class="btn-expand" onclick="openDiagram(this.closest('.diagram-wrap'))">⛶ Expand</button>
+    </div>
+    <p>What happens when the MCP client starts up — tool definitions are fetched once from the server and converted to LangChain StructuredTools.</p>
+    <div class="mermaid">
+sequenceDiagram
+    participant UV as uvicorn
+    participant Main as main.py (lifespan)
+    participant DB as Database
+    participant S as MCP Server :8082
+    participant LG as LangGraph Builder
+    participant App as FastAPI App
+
+    UV->>Main: startup (lifespan enter)
+    Main->>DB: init_db() — create tables if not exist
+    DB-->>Main: OK
+
+    Main->>S: GET http://localhost:8082/mcp/tools
+    S-->>Main: [{name, description, parametersSchema} × 22]
+
+    Main->>Main: create_mcp_tools(definitions)\n→ 22 StructuredTool objects\n  each wraps POST /mcp/tools/{name}
+
+    Main->>Main: create_kb_tool(settings)\n→ 1 StructuredTool (searchKnowledgeBase)\n  KB_PROVIDER=local → ChromaDB\n  KB_PROVIDER=gcp   → Vertex AI Search
+
+    Note over Main: total tools = 23 (22 MCP + 1 KB)
+
+    Main->>LG: build_agent_graph(llm, tools=23, max_rounds=6)
+    LG->>LG: StateGraph(MessagesState)\n  add_node("agent", call_model)\n  add_node("tools", ToolNode(tools))\n  add_conditional_edges(...)\n  compile()
+    LG-->>Main: compiled_graph
+
+    Main->>App: app.state.agent = compiled_graph\napp.state.tools = tools[23]
+    App-->>UV: ready — listening on :8080
+    </div>
+  </div>
+
+</div>
+
+<!-- API REFERENCE -->
+<div class="page" id="page-api">
+  <div class="card">
+    <h2>Endpoints</h2>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>POST</td><td>/api/v1/support/query</td><td>Run LangGraph agent — returns answer + tools used</td></tr>
+        <tr><td>GET</td><td>/api/v1/support/tickets</td><td>List all support tickets</td></tr>
+        <tr><td>GET</td><td>/api/v1/support/tickets/{id}</td><td>Get single ticket by ID</td></tr>
+        <tr><td>GET</td><td>/api/v1/support/health-check</td><td>Health, LLM provider, KB provider, tool count</td></tr>
+        <tr><td>GET</td><td>/docs</td><td>FastAPI Swagger UI (dev only)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>POST /api/v1/support/query</h2>
+    <div class="section-title">Request</div>
+    <div class="arch-box">{
+  "query":        "My campaign is not delivering",  <span class="highlight">// required</span>
+  "campaignId":   "CMP-4491",                       <span class="highlight">// optional</span>
+  "advertiserId": "ADV-8821",                       <span class="highlight">// optional</span>
+  "segmentId":    "SEG-9012",                       <span class="highlight">// optional</span>
+  "dealId":       "DEAL-7723",                      <span class="highlight">// optional</span>
+  "accountTier":  "ENTERPRISE"                      <span class="highlight">// optional</span>
+}</div>
+    <div class="section-title">Response</div>
+    <div class="arch-box">{
+  "ticketId":  "a1b2c3d4-...",
+  "answer":    "Root cause identified: Campaign CMP-4491 has 4 simultaneous issues...",
+  "toolsUsed": ["getCampaignStatus", "getHourlySpendCurve", "searchKnowledgeBase"],
+  "status":    "RESOLVED_BY_AGENT",   <span class="highlight">// or "ESCALATED"</span>
+  "rounds":    3
+}</div>
+
+    <div class="section-title">Auth (when API_KEY is configured)</div>
+    <div class="arch-box">curl -X POST .../api/v1/support/query \
+  -H "Content-Type: application/json" \
+  -H "<span class="highlight">X-API-Key: your-api-key</span>" \
+  -d '{"query":"..."}'</div>
+  </div>
+
+  <div class="card">
+    <h2>Mock Data Scenarios</h2>
+    <table>
+      <thead><tr><th>Campaign ID</th><th>Scenario</th><th>Issues</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:monospace">CMP-4491</td><td>Classic delivery failure</td><td>PAUSED + budget $0 + bid below floor + audience 0</td></tr>
+        <tr><td style="font-family:monospace">CMP-4492</td><td>Healthy campaign</td><td>None — ACTIVE with budget and healthy metrics</td></tr>
+        <tr><td style="font-family:monospace">CMP-4493</td><td>Bid issue only</td><td>ACTIVE but bid $1.80 below floor $2.50</td></tr>
+        <tr><td style="font-family:monospace">DEAL-7723</td><td>PMP seat ID mismatch</td><td>Zero bid requests — seat ID case mismatch</td></tr>
+        <tr><td colspan="3" style="color:#718096;font-size:0.78rem">Rule: campaignId ending in 1 → 4 issues &nbsp;|&nbsp; 2 → healthy &nbsp;|&nbsp; 3 → bid only</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-title" style="margin-top:20px">curl examples</div>
+    <div class="arch-box">
+<span class="highlight"># Campaign not delivering (4 issues)</span>
+curl -X POST http://localhost:8080/api/v1/support/query \
+  -H "Content-Type: application/json" \
+  -d '{"query":"Not delivering","campaignId":"CMP-4491","accountTier":"ENTERPRISE"}'
+
+<span class="highlight"># PMP deal zero bids</span>
+curl -X POST http://localhost:8080/api/v1/support/query \
+  -H "Content-Type: application/json" \
+  -d '{"query":"Zero bid requests on my PMP deal","dealId":"DEAL-7723"}'
+
+<span class="highlight"># Knowledge base search test</span>
+curl -X POST http://localhost:8080/api/v1/support/query \
+  -H "Content-Type: application/json" \
+  -d '{"query":"What causes budget exhaustion before end of day?"}'
+
+<span class="highlight"># Health check</span>
+curl http://localhost:8080/api/v1/support/health-check | python3 -m json.tool
+    </div>
+  </div>
+</div>
+
+<!-- Diagram expand modal -->
+<div id="diagram-modal" onclick="if(event.target===this)closeDiagram()">
+  <div id="modal-header">
+    <span id="modal-title"></span>
+    <div id="modal-controls">
+      <button class="btn-zoom" onclick="_setZoom(_modalZoom-0.2)" title="Zoom out">−</button>
+      <span id="modal-zoom-val">100%</span>
+      <button class="btn-zoom" onclick="_setZoom(_modalZoom+0.2)" title="Zoom in">+</button>
+      <button class="btn-zoom wide" onclick="_setZoom(1)" title="Reset zoom">Reset</button>
+      <button id="modal-close" onclick="closeDiagram()">✕ Close</button>
+    </div>
+  </div>
+  <p id="modal-desc"></p>
+  <div id="modal-body">
+    <div id="modal-svg-wrap"></div>
+  </div>
+</div>
+<!-- Node hover tooltip -->
+<div id="diag-tooltip"></div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    background: '#0d1117',
+    primaryColor: '#1a1f2e',
+    primaryTextColor: '#e2e8f0',
+    primaryBorderColor: '#4c51bf',
+    lineColor: '#4a5568',
+    secondaryColor: '#1a2535',
+    tertiaryColor: '#141920',
+    edgeLabelBackground: '#0d1117',
+    clusterBkg: '#1a1f2e',
+    titleColor: '#7f9cf5',
+    nodeBorder: '#4c51bf',
+    mainBkg: '#1a1f2e',
+    nodeTextColor: '#e2e8f0',
+    actorBkg: '#1a1f2e',
+    actorBorder: '#4c51bf',
+    actorTextColor: '#e2e8f0',
+    actorLineColor: '#4a5568',
+    signalColor: '#a0aec0',
+    signalTextColor: '#e2e8f0',
+    activationBorderColor: '#7f9cf5',
+    activationBkgColor: '#1e293b',
+    noteBkgColor: '#1e293b',
+    noteBorderColor: '#4c51bf',
+    noteTextColor: '#e2e8f0',
+    loopTextColor: '#7f9cf5',
+    labelBoxBkgColor: '#1a1f2e',
+    labelBoxBorderColor: '#4c51bf',
+  },
+  flowchart: { curve: 'basis', padding: 20 },
+  sequence: { actorMargin: 50, width: 150, height: 45, useMaxWidth: true },
+});
+
+let _diagramsRendered = false;
+let _realmcpRendered = false;
+
+// ── Node tooltip descriptions ─────────────────────────────────
+const _nodeDesc = {
+  // Flowchart node IDs (from diagram source)
+  Browser: 'Web browser or curl — sends HTTP requests to MCP Client on port 8080',
+  FA:  'FastAPI routes.py — /api/v1/support/query · /tickets · /health-check',
+  AG:  'LangGraph StateGraph (ReAct loop) — calls LLM, runs tools, loops until final answer',
+  TM:  '22 MCP StructuredTools — each wraps POST /mcp/tools/{name} to server :8082',
+  TK:  'searchKnowledgeBase — runs inside client process (no HTTP hop to MCP server)',
+  DB:  'SQLite tickets.db (dev) / Cloud SQL PostgreSQL (prod) — stores all support tickets',
+  MR:  'FastAPI /mcp/tools endpoint — receives and routes tool execution requests',
+  TD:  'ToolDispatcher — match/case routes tool_name → correct API module',
+  CA:  'getCampaignStatus · getHourlySpendCurve · getPacingSettings · getBudgetForecast',
+  DA:  'getDealStatus · getDealBidStream · getSeatMapping',
+  SE:  'getSegmentStatus · getSegmentUploadLog',
+  CR:  'getCreativeStatus · getCreativeAsset',
+  PX:  'getPixelFireLog · getAttributionWindowSettings · getConversionPath',
+  FR:  'getClickLog · getIVTReport — invalid traffic detection',
+  RP:  'getDSPImpressionReport · getGAMReport · getDiscrepancyLog',
+  GR:  'Groq llama-3.3-70b-versatile — free tier LLM for local dev. Set GROQ_API_KEY in .env',
+  VX:  'Vertex AI Gemini 2.0 Flash — production LLM via ADC (no API key needed on Cloud Run)',
+  CH:  'ChromaDB PersistentClient — ./chroma_db/, seeded from kb-docs/, all-MiniLM-L6-v2',
+  VS:  'Vertex AI Search (Discovery Engine) — adtech-kb datastore, setup once via ./setup-kb.sh',
+  APP: 'ENV=prod: JSON logging, ApiKeyMiddleware, CORS restricted, Swagger disabled',
+  SRV: '22 mock AdTech tools — stateless, zero AI/GCP dependencies, 256Mi memory',
+  GEM: 'Vertex AI Gemini 2.0 Flash — production LLM via Application Default Credentials',
+  VAS: 'Vertex AI Search adtech-kb — managed vector search, indexed from GCS bucket',
+  SQL: 'Cloud SQL PostgreSQL — ticket storage, Cloud SQL Auth Proxy connection',
+  GCS: 'GCS bucket {project}-kb-docs — source JSON docs for Vertex AI Search indexing',
+  SM:  'Secret Manager — stores GROQ_API_KEY and optional API_KEY for endpoint auth',
+  CB:  'Cloud Build CI/CD — builds Docker image, pushes to GCR, deploys to Cloud Run',
+  GCR: 'Container Registry — Docker image store for both client and server services',
+  // Sequence diagram actor labels (display text)
+  'MCP Client :8080':    'FastAPI service — receives queries, runs LangGraph agent, persists tickets',
+  'LangGraph Agent':     'Compiled StateGraph — ReAct loop: call_model → ToolNode → until answer',
+  'LangGraph Builder':   'StateGraph(MessagesState): add_node + add_edge + add_conditional_edges + compile()',
+  'LLM (Groq / Gemini)': 'LLM provider — decides which tools to call based on conversation history',
+  'ToolNode (parallel)': 'LangGraph ToolNode — executes all tool_calls concurrently using asyncio',
+  'MCP Server :8082':    'Returns mock AdTech tool responses — no AI, no DB, pure tool provider',
+  'KB Tool (ChromaDB / Vertex AI Search)': 'Semantic search over 10 adtech KB docs (all-MiniLM-L6-v2)',
+  'Database (SQLite / Cloud SQL)': 'Ticket persistence — stores query, answer, tools_used, status',
+  'uvicorn':             'ASGI server — entry point, triggers FastAPI @asynccontextmanager lifespan',
+  'main.py (lifespan)':  'Startup orchestrator: init_db → fetch 22 tools → create KB tool → build graph',
+  'Database':            'SQLAlchemy async engine — creates Ticket table on first startup',
+  'FastAPI App':         'App ready — app.state.agent (compiled graph) + app.state.tools (23) set',
+};
+
+function _bindTip(el, desc, tip) {
+  el.style.cursor = 'help';
+  el.addEventListener('mousemove', e => {
+    tip.textContent = desc;
+    tip.style.display = 'block';
+    tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 295) + 'px';
+    tip.style.top  = Math.max(e.clientY - 12, 8) + 'px';
+  });
+  el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+}
+
+function _attachNodeTooltips(container) {
+  const tip = document.getElementById('diag-tooltip');
+  // Flowchart nodes: SVG id="flowchart-{nodeId}-{n}"
+  container.querySelectorAll('[id^="flowchart-"]').forEach(el => {
+    const nodeId = el.id.split('-')[1];
+    const desc = _nodeDesc[nodeId];
+    if (desc) _bindTip(el, desc, tip);
+  });
+  // Sequence diagram actors — match by text content
+  container.querySelectorAll('.actor, .actor-top, .actor-bottom').forEach(el => {
+    const label = el.textContent.trim().split('\n')[0].trim();
+    const desc = _nodeDesc[label];
+    if (desc) _bindTip(el.closest('g') || el, desc, tip);
+  });
+}
+
+// ── Diagram modal ─────────────────────────────────────────────
+let _modalZoom = 1;
+
+function _setZoom(z) {
+  _modalZoom = Math.max(0.3, Math.min(4, z));
+  document.getElementById('modal-svg-wrap').style.transform = `scale(${_modalZoom})`;
+  document.getElementById('modal-zoom-val').textContent = Math.round(_modalZoom * 100) + '%';
+}
+
+function openDiagram(idxOrEl) {
+  const wrap = (typeof idxOrEl === 'number')
+    ? document.querySelectorAll('.diagram-wrap')[idxOrEl]
+    : idxOrEl;
+  const svg  = wrap.querySelector('svg');
+  document.getElementById('modal-title').textContent =
+    wrap.querySelector('h3').textContent;
+  document.getElementById('modal-desc').textContent =
+    (wrap.querySelector('p') || {textContent: ''}).textContent;
+
+  const svgWrap = document.getElementById('modal-svg-wrap');
+  if (svg) {
+    const clone = svg.cloneNode(true);
+    clone.removeAttribute('width');
+    clone.style.cssText = 'width:100%;max-width:1100px;height:auto';
+    svgWrap.innerHTML = '';
+    svgWrap.appendChild(clone);
+    _attachNodeTooltips(svgWrap);
+  } else {
+    svgWrap.innerHTML = '<p style="color:#718096;padding:40px;text-align:center">Navigate to the Diagrams tab first to render, then expand.</p>';
+  }
+  _setZoom(1);
+  document.getElementById('diagram-modal').classList.add('open');
+}
+
+function closeDiagram() {
+  document.getElementById('diagram-modal').classList.remove('open');
+  document.getElementById('diag-tooltip').style.display = 'none';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDiagram(); });
+
+// Ctrl/Cmd + wheel to zoom inside modal
+document.getElementById('modal-body').addEventListener('wheel', e => {
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault();
+    _setZoom(_modalZoom + (e.deltaY > 0 ? -0.15 : 0.15));
+  }
+}, { passive: false });
+
+// ── Multi-turn memory ─────────────────────────────────────────
+var _memoryOn = false;
+var _sessionThreadId = _genThreadId();
+// ── Human Interrupt ───────────────────────────────────────────
+var _hiMode = false;
+var _hiPendingThreadId = null;
+var _hiPendingQuery = null;
+var _hiPendingAdvertiserId = null;
+var _hiPendingCampaignId = null;
+
+function _genThreadId() {
+  return 'ses-' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+}
+
+function onMemToggle() {
+  _memoryOn = document.getElementById('mem-toggle').checked;
+  var desc   = document.getElementById('mem-desc');
+  var tid    = document.getElementById('mem-thread-id');
+  var rst    = document.getElementById('mem-reset-btn');
+  if (_memoryOn) {
+    desc.textContent = 'ON — agent remembers previous queries in this session';
+    desc.style.color = '#68d391';
+    tid.textContent  = 'thread: ' + _sessionThreadId;
+    tid.style.display = 'inline';
+    rst.style.display = 'inline';
+  } else {
+    desc.textContent = 'OFF — each query is independent (current behaviour)';
+    desc.style.color = '#718096';
+    tid.style.display = 'none';
+    rst.style.display = 'none';
+  }
+}
+
+function resetMemSession() {
+  _sessionThreadId = _genThreadId();
+  document.getElementById('mem-thread-id').textContent = 'thread: ' + _sessionThreadId;
+}
+
+function onHiToggle() {
+  _hiMode = document.getElementById('hi-toggle').checked;
+  var desc = document.getElementById('hi-desc');
+  var slider = document.querySelector('#hi-toggle + .mem-slider');
+  if (_hiMode) {
+    desc.textContent  = 'ON — agent pauses before running tools, waits for your approval';
+    desc.style.color  = '#f6ad55';
+    if (slider) slider.style.background = '#c05621';
+  } else {
+    desc.textContent  = 'OFF — agent runs tools automatically';
+    desc.style.color  = '#718096';
+    if (slider) slider.style.background = '#744210';
+    document.getElementById('approval-panel').classList.remove('show');
+  }
+}
+
+function _showApprovalPanel(pendingTools) {
+  var panel = document.getElementById('approval-panel');
+  var toolsDiv = document.getElementById('approval-tools');
+  var html = '';
+  for (var i = 0; i < pendingTools.length; i++) {
+    html += '<span class="approval-tool-tag">' + _esc(pendingTools[i]) + '</span>';
+  }
+  toolsDiv.innerHTML = html || '<span style="color:#718096;font-size:0.82rem">No tools pending</span>';
+  panel.classList.add('show');
+}
+
+async function resumeQuery(approved) {
+  document.getElementById('approval-panel').classList.remove('show');
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('loading-msg').textContent =
+    approved ? 'Running approved tools...' : 'Answering from knowledge base...';
+  document.getElementById('submit-btn').disabled = true;
+
+  try {
+    var body = { threadId: _hiPendingThreadId, approved: approved };
+    if (_hiPendingQuery)       body.query       = _hiPendingQuery;
+    if (_hiPendingAdvertiserId) body.advertiserId = _hiPendingAdvertiserId;
+    if (_hiPendingCampaignId)   body.campaignId   = _hiPendingCampaignId;
+
+    var res = await fetch('/api/v1/support/query/resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) { var e = await res.json(); throw new Error(e.detail || res.statusText); }
+    var data = await res.json();
+
+    if (data.status === 'AWAITING_APPROVAL') {
+      _showApprovalPanel(data.pendingTools || []);
+      return;
+    }
+    _showResult(data, true);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('loading-msg').textContent = 'LangGraph ReAct loop running...';
+  }
+}
+
+function _showResult(data, isHi) {
+  document.getElementById('result-answer').textContent = data.answer || '';
+  var pill = document.getElementById('result-status');
+  pill.textContent = data.status === 'RESOLVED_BY_AGENT' ? '✓ Resolved' : '⚠ Escalated';
+  pill.className = 'status-pill ' + data.status;
+  document.getElementById('result-meta').textContent =
+    (data.rounds || 0) + ' round' + (data.rounds !== 1 ? 's' : '') + ' · ' + (data.toolsUsed || []).length + ' tools';
+  var toolsDiv = document.getElementById('result-tools');
+  toolsDiv.innerHTML = (data.toolsUsed || []).map(function(t) {
+    return '<span class="tool-tag' + (t === 'searchKnowledgeBase' ? ' kb' : '') + '">' + t + '</span>';
+  }).join('');
+  document.getElementById('result-ticket').textContent = data.ticketId ? 'Ticket ID: ' + data.ticketId : '';
+  var memInfo = document.getElementById('result-mem');
+  if (isHi) {
+    memInfo.textContent = 'Human Interrupt — thread: ' + _hiPendingThreadId;
+    memInfo.style.color = '#f6ad55';
+  } else if (_memoryOn) {
+    memInfo.textContent = 'Memory ON — thread: ' + _sessionThreadId;
+    memInfo.style.color = '#68d391';
+  } else {
+    memInfo.textContent = 'Memory OFF — stateless query';
+    memInfo.style.color = '#718096';
+  }
+  document.getElementById('result').classList.add('show');
+  loadTickets();
+}
+
+const SCENARIOS = {
+  delivery: { query: 'Campaign is not delivering any impressions', campaignId: 'CMP-4491', advertiserId: 'ADV-8821', accountTier: 'ENTERPRISE' },
+  floor:    { query: 'Campaign running but winning very few auctions', campaignId: 'CMP-4493', accountTier: 'STANDARD' },
+  deal:     { query: 'PMP deal showing zero bid requests from SSP', dealId: 'DEAL-7723', accountTier: 'ENTERPRISE' },
+  pixel:    { query: 'Pixel fires but conversions are not being attributed to campaigns', campaignId: 'CMP-4492' },
+  healthy:  { query: 'Quick status check on this campaign', campaignId: 'CMP-4492', accountTier: 'STANDARD' },
+};
+
+function loadScenario(key) {
+  const s = SCENARIOS[key];
+  document.getElementById('q-query').value    = s.query      || '';
+  document.getElementById('q-campaign').value = s.campaignId || '';
+  document.getElementById('q-advertiser').value = s.advertiserId || '';
+  document.getElementById('q-deal').value     = s.dealId     || '';
+  document.getElementById('q-segment').value  = s.segmentId  || '';
+  const tier = document.getElementById('q-tier');
+  tier.value = s.accountTier || '';
+}
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'tickets') loadTickets();
+  if (id === 'diagrams' && !_diagramsRendered) {
+    _diagramsRendered = true;
+    mermaid.run({ nodes: document.querySelectorAll('#page-diagrams .mermaid') })
+      .then(() => {
+        document.querySelectorAll('#page-diagrams .diagram-wrap').forEach(w => _attachNodeTooltips(w));
+      }).catch(() => {});
+  }
+  if (id === 'realmcp' && !_realmcpRendered) {
+    _realmcpRendered = true;
+    mermaid.run({ nodes: document.querySelectorAll('#page-realmcp .mermaid') })
+      .then(() => {
+        document.querySelectorAll('#page-realmcp .diagram-wrap').forEach(w => _attachNodeTooltips(w));
+      }).catch(() => {});
+  }
+}
+
+async function submitQuery() {
+  const query = document.getElementById('q-query').value.trim();
+  if (!query) { alert('Please enter a query'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('result').classList.remove('show');
+
+  try {
+    const body = { query };
+    const campaign  = document.getElementById('q-campaign').value.trim();
+    const advertiser = document.getElementById('q-advertiser').value.trim();
+    const segment   = document.getElementById('q-segment').value.trim();
+    const deal      = document.getElementById('q-deal').value.trim();
+    const tier      = document.getElementById('q-tier').value;
+    if (campaign)   body.campaignId   = campaign;
+    if (advertiser) body.advertiserId = advertiser;
+    if (segment)    body.segmentId    = segment;
+    if (deal)       body.dealId       = deal;
+    if (tier)       body.accountTier  = tier;
+    if (_memoryOn)  body.threadId      = _sessionThreadId;
+    if (_hiMode)    body.humanInterrupt = true;
+    // HI mode needs a thread_id so the resume call can find the checkpoint
+    if (_hiMode && !body.threadId) body.threadId = _genThreadId();
+
+    const res = await fetch('/api/v1/support/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || res.statusText); }
+    const data = await res.json();
+
+    if (data.status === 'AWAITING_APPROVAL') {
+      // Store context needed for the resume call
+      _hiPendingThreadId    = data.threadId;
+      _hiPendingQuery       = query;
+      _hiPendingAdvertiserId = advertiser || null;
+      _hiPendingCampaignId  = campaign || null;
+      _showApprovalPanel(data.pendingTools || []);
+      return;
+    }
+
+    _showResult(data, false);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('loading').classList.remove('show');
+  }
+}
+
+var _allTickets = [];
+var _ticketPage = 1;
+var _PAGE_SIZE  = 10;
+
+async function loadTickets() {
+  var tbody = document.getElementById('tickets-body');
+  tbody.innerHTML = '<tr><td colspan="7" style="color:#718096;text-align:center;padding:20px">Loading...</td></tr>';
+  document.getElementById('ticket-pager').style.display = 'none';
+  document.getElementById('ticket-count').textContent = '';
+  try {
+    var res = await fetch('/api/v1/support/tickets');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    _allTickets = await res.json();
+    _ticketPage = 1;
+    _renderTickets();
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:#fc8181;text-align:center;padding:20px">Error: ' + e.message + '</td></tr>';
+  }
+}
+
+function _esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _formatDate(iso) {
+  if (!iso) return '—';
+  try {
+    // Trim microseconds to 3 digits (Safari rejects 6-digit sub-seconds)
+    // Append Z so browser treats as UTC, not ambiguous local time
+    var s = iso.replace(/(\.\d{3})\d*/, '$1').replace(/Z?$/, 'Z');
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString(undefined, {
+      year:'numeric', month:'short', day:'numeric',
+      hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
+  } catch(e) { return iso; }
+}
+
+function _renderTickets() {
+  var tbody  = document.getElementById('tickets-body');
+  var total  = _allTickets.length;
+  var pager  = document.getElementById('ticket-pager');
+  var count  = document.getElementById('ticket-count');
+
+  if (!total) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:#718096;text-align:center;padding:20px">No tickets yet — submit a query first</td></tr>';
+    pager.style.display = 'none';
+    count.textContent = '0 tickets';
+    return;
+  }
+
+  var start = (_ticketPage - 1) * _PAGE_SIZE;
+  var end   = Math.min(start + _PAGE_SIZE, total);
+  var page  = _allTickets.slice(start, end);
+  var pages = Math.ceil(total / _PAGE_SIZE);
+  var html  = '';
+
+  for (var i = 0; i < page.length; i++) {
+    var t      = page[i];
+    var rowId  = 'tx-' + (start + i);
+    var tools  = t.toolsUsed || [];
+    var ans    = t.answer || '';
+    var preview = ans.replace(/\n/g,' ').substring(0, 120) + (ans.length > 120 ? '…' : '');
+
+    var toolBadges2 = '';
+    for (var j = 0; j < Math.min(tools.length, 2); j++) {
+      toolBadges2 += '<span class="tool-tag' + (tools[j]==='searchKnowledgeBase'?' kb':'') + '">' + tools[j] + '</span> ';
+    }
+    if (tools.length > 2) toolBadges2 += '<span style="color:#718096;font-size:0.72rem">+' + (tools.length-2) + '</span>';
+
+    var toolBadgesAll = '';
+    for (var k = 0; k < tools.length; k++) {
+      toolBadgesAll += '<span class="tool-tag' + (tools[k]==='searchKnowledgeBase'?' kb':'') + '">' + tools[k] + '</span> ';
+    }
+
+    var statusLabel = t.status === 'RESOLVED_BY_AGENT' ? '&#10003; Resolved' : '&#9888; Escalated';
+
+    html += '<tr class="ticket-row" onclick="toggleTicket(\'' + rowId + '\')">';
+    html += '<td style="font-family:monospace;font-size:0.78rem;color:#7f9cf5">' + t.id.substring(0,8) + '&hellip;</td>';
+    html += '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(t.query) + '">' + _esc(t.query) + '</td>';
+    html += '<td style="font-family:monospace;color:#a0aec0">' + _esc(t.campaignId || '&mdash;') + '</td>';
+    html += '<td style="max-width:220px;color:#a0aec0;font-size:0.8rem">' + _esc(preview) + '</td>';
+    html += '<td><span class="status-pill ' + t.status + '" style="font-size:0.7rem">' + statusLabel + '</span></td>';
+    html += '<td style="max-width:160px">' + toolBadges2 + '</td>';
+    html += '<td style="color:#718096;font-size:0.78rem;white-space:nowrap">' + _formatDate(t.createdAt) + '</td>';
+    html += '</tr>';
+    html += '<tr class="ticket-expand" id="' + rowId + '">';
+    html += '<td colspan="7"><div class="ticket-answer">';
+    html += '<div class="ticket-answer-label">Full Answer</div>';
+    html += _esc(ans || '&mdash;');
+    html += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">' + toolBadgesAll + '</div>';
+    html += '<div style="margin-top:8px;font-size:0.75rem;color:#4a5568">Ticket ID: ' + t.id + '</div>';
+    html += '</div></td></tr>';
+  }
+
+  tbody.innerHTML = html;
+  count.textContent = total + ' ticket' + (total !== 1 ? 's' : '');
+
+  if (pages <= 1) {
+    pager.style.display = 'none';
+  } else {
+    pager.style.display = 'flex';
+    document.getElementById('pager-info').textContent  = (start+1) + '–' + end + ' of ' + total;
+    document.getElementById('pager-label').textContent = 'Page ' + _ticketPage + ' / ' + pages;
+    document.getElementById('btn-prev').disabled = (_ticketPage === 1);
+    document.getElementById('btn-next').disabled = (_ticketPage === pages);
+  }
+}
+
+function toggleTicket(rowId) {
+  var row = document.getElementById(rowId);
+  if (row) row.classList.toggle('open');
+}
+
+function _goPage(p) {
+  var pages = Math.ceil(_allTickets.length / _PAGE_SIZE);
+  if (p < 1 || p > pages) return;
+  _ticketPage = p;
+  _renderTickets();
+  document.getElementById('page-tickets').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// Health check + KB status on load
+(async () => {
+  try {
+    const r = await fetch('/api/v1/support/health-check');
+    const h = await r.json();
+    const badge = document.getElementById('health-badge');
+    badge.textContent = `${h.llmProvider} · ${h.toolsLoaded} tools`;
+    badge.style.background = h.toolsLoaded > 0 ? '#276749' : '#744210';
+
+    const kb = document.getElementById('kb-badge');
+    const kbProvider = h.kbProvider || 'local';
+    kb.textContent = `KB: ${kbProvider}`;
+    kb.className = `badge ${kbProvider === 'gcp' ? 'green' : 'purple'}`;
+  } catch {
+    document.getElementById('health-badge').textContent = 'DOWN';
+    document.getElementById('kb-badge').textContent = 'KB: unknown';
+  }
+})();
+</script>
+</body>
+</html>

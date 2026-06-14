@@ -1,0 +1,27 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+httpx==0.27.2
+pydantic==2.10.1
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+
+# LangChain + LangGraph
+langchain==0.3.7
+langgraph==0.2.55
+langchain-core==0.3.19
+langchain-groq==0.2.1
+langchain-google-vertexai==2.0.5
+
+# Knowledge Base — GCP (Vertex AI Search)
+google-cloud-discoveryengine==0.13.4
+
+# Knowledge Base — Local (ChromaDB + sentence-transformers)
+# sentence-transformers downloads all-MiniLM-L6-v2 (~90 MB) on first run
+chromadb==0.5.23
+sentence-transformers==3.3.1
+
+# Database
+sqlalchemy==2.0.36
+greenlet==3.1.1          # required by sqlalchemy async engine
+aiosqlite==0.20.0        # local / dev (SQLite)
+asyncpg==0.29.0          # production (Cloud SQL PostgreSQL)

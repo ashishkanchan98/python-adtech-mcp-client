@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdTech Support Agent</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1117;color:#e2e8f0;min-height:100vh}
+  header{background:linear-gradient(135deg,#1a1f2e,#252d3d);border-bottom:1px solid #2d3748;padding:16px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header h1{font-size:1.2rem;font-weight:700;color:#fff}
+  .badge{background:#4c51bf;color:#fff;font-size:0.68rem;padding:3px 8px;border-radius:20px;font-weight:600}
+  .badge.green{background:#276749}
+  .badge.purple{background:#553c9a}
+  nav{display:flex;gap:4px;padding:0 28px;background:#141920;border-bottom:1px solid #2d3748}
+  nav button{background:none;border:none;color:#a0aec0;padding:14px 18px;cursor:pointer;font-size:0.88rem;border-bottom:2px solid transparent;transition:all .2s}
+  nav button.active{color:#7f9cf5;border-bottom-color:#7f9cf5}
+  nav button:hover{color:#e2e8f0}
+  .page{display:none;padding:28px;max-width:900px;margin:0 auto}
+  .page.active{display:block}
+  .card{background:#1a1f2e;border:1px solid #2d3748;border-radius:10px;padding:22px;margin-bottom:20px}
+  .card h2{font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:18px}
+  label{display:block;font-size:0.82rem;color:#a0aec0;margin-bottom:6px;margin-top:14px}
+  input,textarea,select{width:100%;background:#0f1117;border:1px solid #2d3748;border-radius:6px;padding:10px 12px;color:#e2e8f0;font-size:0.9rem;outline:none;transition:border .2s}
+  input:focus,textarea:focus{border-color:#7f9cf5}
+  textarea{resize:vertical;min-height:90px;font-family:inherit}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .btn{background:#4c51bf;color:#fff;border:none;border-radius:6px;padding:11px 24px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:background .2s;margin-top:18px}
+  .btn:hover{background:#434190}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.sm{padding:7px 14px;font-size:0.82rem;margin-top:0}
+  .result{background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:18px;margin-top:20px;display:none}
+  .result.show{display:block}
+  .result-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .status-pill{padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:700}
+  .RESOLVED_BY_AGENT{background:#1c4532;color:#68d391}
+  .ESCALATED{background:#7b341e;color:#fc8181}
+  .tools-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .tool-tag{background:#1e293b;border:1px solid #334155;color:#93c5fd;font-size:0.73rem;padding:3px 8px;border-radius:4px;font-family:monospace}
+  .tool-tag.kb{border-color:#553c9a;color:#b794f4}
+  .answer-text{white-space:pre-wrap;font-size:0.88rem;line-height:1.65;color:#cbd5e0}
+  .meta{font-size:0.78rem;color:#718096;margin-top:10px}
+  table{width:100%;border-collapse:collapse;font-size:0.86rem}
+  th{text-align:left;padding:10px 12px;color:#718096;border-bottom:1px solid #2d3748;font-weight:600}
+  td{padding:10px 12px;border-bottom:1px solid #1e2533;vertical-align:top}
+  tr:hover td{background:#1a2035}
+  .loading{text-align:center;padding:40px;color:#718096;display:none}
+  .loading.show{display:block}
+  .spinner{display:inline-block;width:28px;height:28px;border:3px solid #2d3748;border-top-color:#7f9cf5;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .scenarios{display:flex;flex-wrap:wrap;gap:10px}
+  .ticket-row{cursor:pointer}
+  .ticket-row:hover td{background:#1e2840}
+  .ticket-expand{display:none;background:#0d1117}
+  .ticket-expand.open{display:table-row}
+  .ticket-answer{white-space:pre-wrap;font-size:0.83rem;line-height:1.65;color:#cbd5e0;padding:14px 16px;border-top:1px solid #1e2533}
+  .ticket-answer-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:.07em;color:#718096;margin-bottom:8px}
+  .full-link{font-size:0.78rem;color:#4a5568;text-align:right;padding:8px 28px;background:#141920;border-top:1px solid #2d3748}
+  .full-link a{color:#7f9cf5;text-decoration:none}
+  .full-link a:hover{text-decoration:underline}
+  /* ── Memory toggle ─────────────────────────────────── */
+  .mem-bar{display:flex;align-items:center;gap:12px;background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:11px 14px;margin-top:16px;flex-wrap:wrap}
+  .mem-switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+  .mem-switch input{opacity:0;width:0;height:0}
+  .mem-slider{position:absolute;cursor:pointer;inset:0;background:#374151;border-radius:22px;transition:.2s}
+  .mem-slider:before{position:absolute;content:'';height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+  .mem-switch input:checked + .mem-slider{background:#276749}
+  .mem-switch input:checked + .mem-slider:before{transform:translateX(18px)}
+  .mem-mode-label{font-size:0.84rem;font-weight:600;color:#e2e8f0}
+  .mem-thread-id{font-family:monospace;font-size:0.72rem;color:#7f9cf5;background:#1e293b;border:1px solid #334155;padding:2px 8px;border-radius:4px;display:none}
+  .btn-mem-reset{background:#1e293b;border:1px solid #334155;color:#a0aec0;font-size:0.75rem;padding:4px 10px;border-radius:5px;cursor:pointer;display:none}
+  .btn-mem-reset:hover{border-color:#7f9cf5;color:#e2e8f0}
+  .hi-bar{display:flex;align-items:center;gap:12px;background:#0d1117;border:1px solid #744210;border-radius:8px;padding:11px 14px;margin-top:8px;flex-wrap:wrap}
+  .approval-panel{background:#0d1117;border:1px solid #f97316;border-radius:10px;padding:18px;margin-top:20px;display:none}
+  .approval-panel.show{display:block}
+  .approval-tool-tag{background:#1a1200;border:1px solid #744210;color:#f6ad55;font-size:0.78rem;padding:4px 10px;border-radius:4px;font-family:monospace}
+  .btn-approve{background:#276749;color:#fff;border:none;border-radius:6px;padding:10px 22px;cursor:pointer;font-size:0.88rem;font-weight:600;transition:background .2s}
+  .btn-approve:hover{background:#22543d}
+  .btn-reject{background:#7b341e;color:#fff;border:none;border-radius:6px;padding:10px 22px;cursor:pointer;font-size:0.88rem;font-weight:600;transition:background .2s}
+  .btn-reject:hover{background:#63271a}
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:1.6rem">🐍</span>
+  <div>
+    <h1>AdTech Support Agent</h1>
+  </div>
+  <span class="badge">LangGraph</span>
+  <span class="badge purple" id="kb-badge">KB: checking...</span>
+  <span class="badge green" id="health-badge">checking...</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('query',this)">New Query</button>
+  <button onclick="showPage('tickets',this)">All Tickets</button>
+</nav>
+
+<!-- NEW QUERY -->
+<div class="page active" id="page-query">
+  <div class="card">
+    <h2>Submit Support Query</h2>
+    <label>Query *</label>
+    <textarea id="q-query" placeholder="e.g. My campaign CMP-4491 is not delivering any impressions"></textarea>
+    <div class="row">
+      <div>
+        <label>Campaign ID</label>
+        <input id="q-campaign" placeholder="CMP-4491">
+      </div>
+      <div>
+        <label>Advertiser ID</label>
+        <input id="q-advertiser" placeholder="ADV-8821">
+      </div>
+    </div>
+    <div class="row3">
+      <div>
+        <label>Segment ID</label>
+        <input id="q-segment" placeholder="SEG-9012">
+      </div>
+      <div>
+        <label>Deal ID</label>
+        <input id="q-deal" placeholder="DEAL-7723">
+      </div>
+      <div>
+        <label>Account Tier</label>
+        <select id="q-tier">
+          <option value="">— Select —</option>
+          <option>ENTERPRISE</option>
+          <option>STANDARD</option>
+          <option>SELF_SERVE</option>
+        </select>
+      </div>
+    </div>
+    <div class="mem-bar">
+      <label class="mem-switch">
+        <input type="checkbox" id="mem-toggle" onchange="onMemToggle()">
+        <span class="mem-slider"></span>
+      </label>
+      <span class="mem-mode-label">Multi-turn Memory</span>
+      <span class="mem-desc" id="mem-desc">OFF &mdash; each query is independent (current behaviour)</span>
+      <span class="mem-thread-id" id="mem-thread-id"></span>
+      <button class="btn-mem-reset" id="mem-reset-btn" onclick="resetMemSession()">&#8635; New Session</button>
+    </div>
+    <div class="hi-bar">
+      <label class="mem-switch">
+        <input type="checkbox" id="hi-toggle" onchange="onHiToggle()">
+        <span class="mem-slider" style="background:#744210"></span>
+      </label>
+      <span class="mem-mode-label">Human Interrupt</span>
+      <span style="font-size:0.78rem;color:#718096" id="hi-desc">OFF &mdash; agent runs tools automatically</span>
+    </div>
+    <button class="btn" id="submit-btn" onclick="submitQuery()">Run Agent</button>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p id="loading-msg">LangGraph ReAct loop running...</p>
+    <p style="font-size:0.78rem;margin-top:8px;color:#4a5568">LLM decides tools → ToolNode executes in parallel → loops until resolved</p>
+  </div>
+
+  <div class="approval-panel" id="approval-panel">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:1.2rem">&#9646;</span>
+      <strong style="color:#f97316;font-size:0.95rem">Agent Paused — Waiting for Approval</strong>
+    </div>
+    <div style="font-size:0.82rem;color:#a0aec0;margin-bottom:10px">The agent plans to call these tools:</div>
+    <div id="approval-tools" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px"></div>
+    <div style="font-size:0.8rem;color:#718096;margin-bottom:14px">
+      <strong style="color:#e2e8f0">Approve</strong> — tools run, agent uses real data to answer<br>
+      <strong style="color:#e2e8f0">Reject</strong> — tools skipped, agent answers from knowledge base only
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn-approve" onclick="resumeQuery(true)">&#10003; Approve — Run Tools</button>
+      <button class="btn-reject" onclick="resumeQuery(false)">&#10007; Reject — KB Only</button>
+    </div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-header">
+      <span style="font-size:1.1rem">🎯</span>
+      <strong>Agent Answer</strong>
+      <span class="status-pill" id="result-status">–</span>
+      <span style="color:#718096;font-size:0.78rem" id="result-meta"></span>
+    </div>
+    <div class="answer-text" id="result-answer"></div>
+    <div class="meta">Tools used:</div>
+    <div class="tools-row" id="result-tools"></div>
+    <div class="meta" id="result-ticket"></div>
+    <div class="meta" id="result-mem" style="margin-top:4px;font-size:0.76rem"></div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h2>Quick Test Scenarios</h2>
+    <div class="scenarios">
+      <button class="btn sm" onclick="loadScenario('delivery')">Campaign Not Delivering</button>
+      <button class="btn sm" onclick="loadScenario('floor')">Bid Below Floor</button>
+      <button class="btn sm" onclick="loadScenario('deal')">PMP Deal Zero Bids</button>
+      <button class="btn sm" onclick="loadScenario('pixel')">Pixel No Attribution</button>
+      <button class="btn sm" onclick="loadScenario('healthy')">Healthy Campaign</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALL TICKETS -->
+<div class="page" id="page-tickets">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0">All Tickets</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="ticket-count" style="color:#718096;font-size:0.82rem"></span>
+        <button class="btn sm" onclick="loadTickets()">Refresh</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Ticket ID</th><th>Query</th><th>Campaign</th><th>Answer Preview</th><th>Status</th><th>Tools</th><th>Created</th>
+        </tr></thead>
+        <tbody id="tickets-body">
+          <tr><td colspan="7" style="color:#718096;text-align:center;padding:20px">Click Refresh to load tickets</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="ticket-pager" style="display:none;align-items:center;justify-content:space-between;padding:14px 0 4px;font-size:0.82rem;color:#718096;flex-wrap:wrap;gap:8px">
+      <span id="pager-info"></span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="btn-prev" class="btn sm" style="padding:5px 14px" onclick="_goPage(_ticketPage-1)">&#8249; Prev</button>
+        <span id="pager-label" style="padding:5px 8px;color:#a0aec0;min-width:80px;text-align:center"></span>
+        <button id="btn-next" class="btn sm" style="padding:5px 14px" onclick="_goPage(_ticketPage+1)">Next &#8250;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="full-link">
+  <a href="/">Full dashboard (Architecture · Diagrams · API Reference)</a>
+</div>
+
+<script>
+// ── Multi-turn memory ─────────────────────────────────────────
+var _memoryOn = false;
+var _sessionThreadId = _genThreadId();
+// ── Human Interrupt ───────────────────────────────────────────
+var _hiMode = false;
+var _hiPendingThreadId = null;
+var _hiPendingQuery = null;
+var _hiPendingAdvertiserId = null;
+var _hiPendingCampaignId = null;
+
+function _genThreadId() {
+  return 'ses-' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+}
+
+function onMemToggle() {
+  _memoryOn = document.getElementById('mem-toggle').checked;
+  var desc = document.getElementById('mem-desc');
+  var tid  = document.getElementById('mem-thread-id');
+  var rst  = document.getElementById('mem-reset-btn');
+  if (_memoryOn) {
+    desc.textContent  = 'ON — agent remembers previous queries in this session';
+    desc.style.color  = '#68d391';
+    tid.textContent   = 'thread: ' + _sessionThreadId;
+    tid.style.display = 'inline';
+    rst.style.display = 'inline';
+  } else {
+    desc.textContent  = 'OFF — each query is independent (current behaviour)';
+    desc.style.color  = '#718096';
+    tid.style.display = 'none';
+    rst.style.display = 'none';
+  }
+}
+
+function resetMemSession() {
+  _sessionThreadId = _genThreadId();
+  document.getElementById('mem-thread-id').textContent = 'thread: ' + _sessionThreadId;
+}
+
+function onHiToggle() {
+  _hiMode = document.getElementById('hi-toggle').checked;
+  var desc = document.getElementById('hi-desc');
+  var slider = document.querySelector('#hi-toggle + .mem-slider');
+  if (_hiMode) {
+    desc.textContent = 'ON — agent pauses before running tools, waits for your approval';
+    desc.style.color = '#f6ad55';
+    if (slider) slider.style.background = '#c05621';
+  } else {
+    desc.textContent = 'OFF — agent runs tools automatically';
+    desc.style.color = '#718096';
+    if (slider) slider.style.background = '#744210';
+    document.getElementById('approval-panel').classList.remove('show');
+  }
+}
+
+function _showApprovalPanel(pendingTools) {
+  var toolsDiv = document.getElementById('approval-tools');
+  var html = '';
+  for (var i = 0; i < pendingTools.length; i++) {
+    html += '<span class="approval-tool-tag">' + _esc(pendingTools[i]) + '</span>';
+  }
+  toolsDiv.innerHTML = html || '<span style="color:#718096;font-size:0.82rem">No tools pending</span>';
+  document.getElementById('approval-panel').classList.add('show');
+}
+
+async function resumeQuery(approved) {
+  document.getElementById('approval-panel').classList.remove('show');
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('loading-msg').textContent =
+    approved ? 'Running approved tools...' : 'Answering from knowledge base...';
+  document.getElementById('submit-btn').disabled = true;
+  try {
+    var body = { threadId: _hiPendingThreadId, approved: approved };
+    if (_hiPendingQuery)        body.query        = _hiPendingQuery;
+    if (_hiPendingAdvertiserId) body.advertiserId  = _hiPendingAdvertiserId;
+    if (_hiPendingCampaignId)   body.campaignId    = _hiPendingCampaignId;
+    var res = await fetch('/api/v1/support/query/resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) { var e = await res.json(); throw new Error(e.detail || res.statusText); }
+    var data = await res.json();
+    if (data.status === 'AWAITING_APPROVAL') {
+      _showApprovalPanel(data.pendingTools || []);
+      return;
+    }
+    _showResult(data, true);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('loading-msg').textContent = 'LangGraph ReAct loop running...';
+  }
+}
+
+function _showResult(data, isHi) {
+  document.getElementById('result-answer').textContent = data.answer || '';
+  var pill = document.getElementById('result-status');
+  pill.textContent = data.status === 'RESOLVED_BY_AGENT' ? '✓ Resolved' : '⚠ Escalated';
+  pill.className = 'status-pill ' + data.status;
+  document.getElementById('result-meta').textContent =
+    (data.rounds || 0) + ' round' + (data.rounds !== 1 ? 's' : '') + ' · ' + (data.toolsUsed || []).length + ' tools';
+  var toolsDiv = document.getElementById('result-tools');
+  toolsDiv.innerHTML = (data.toolsUsed || []).map(function(t) {
+    return '<span class="tool-tag' + (t === 'searchKnowledgeBase' ? ' kb' : '') + '">' + t + '</span>';
+  }).join('');
+  document.getElementById('result-ticket').textContent = data.ticketId ? 'Ticket ID: ' + data.ticketId : '';
+  var memInfo = document.getElementById('result-mem');
+  if (isHi) {
+    memInfo.textContent = 'Human Interrupt — thread: ' + _hiPendingThreadId;
+    memInfo.style.color = '#f6ad55';
+  } else if (_memoryOn) {
+    memInfo.textContent = 'Memory ON — thread: ' + _sessionThreadId;
+    memInfo.style.color = '#68d391';
+  } else {
+    memInfo.textContent = 'Memory OFF — stateless query';
+    memInfo.style.color = '#718096';
+  }
+  document.getElementById('result').classList.add('show');
+  loadTickets();
+}
+
+const SCENARIOS = {
+  delivery: { query: 'Campaign is not delivering any impressions', campaignId: 'CMP-4491', advertiserId: 'ADV-8821', accountTier: 'ENTERPRISE' },
+  floor:    { query: 'Campaign running but winning very few auctions', campaignId: 'CMP-4493', accountTier: 'STANDARD' },
+  deal:     { query: 'PMP deal showing zero bid requests from SSP', dealId: 'DEAL-7723', accountTier: 'ENTERPRISE' },
+  pixel:    { query: 'Pixel fires but conversions are not being attributed to campaigns', campaignId: 'CMP-4492' },
+  healthy:  { query: 'Quick status check on this campaign', campaignId: 'CMP-4492', accountTier: 'STANDARD' },
+};
+
+function loadScenario(key) {
+  const s = SCENARIOS[key];
+  document.getElementById('q-query').value      = s.query        || '';
+  document.getElementById('q-campaign').value   = s.campaignId   || '';
+  document.getElementById('q-advertiser').value = s.advertiserId || '';
+  document.getElementById('q-deal').value       = s.dealId       || '';
+  document.getElementById('q-segment').value    = s.segmentId    || '';
+  document.getElementById('q-tier').value       = s.accountTier  || '';
+}
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'tickets') loadTickets();
+}
+
+async function submitQuery() {
+  const query = document.getElementById('q-query').value.trim();
+  if (!query) { alert('Please enter a query'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('result').classList.remove('show');
+
+  try {
+    const body = { query };
+    const campaign   = document.getElementById('q-campaign').value.trim();
+    const advertiser = document.getElementById('q-advertiser').value.trim();
+    const segment    = document.getElementById('q-segment').value.trim();
+    const deal       = document.getElementById('q-deal').value.trim();
+    const tier       = document.getElementById('q-tier').value;
+    if (campaign)   body.campaignId   = campaign;
+    if (advertiser) body.advertiserId = advertiser;
+    if (segment)    body.segmentId    = segment;
+    if (deal)       body.dealId       = deal;
+    if (tier)       body.accountTier  = tier;
+    if (_memoryOn)  body.threadId       = _sessionThreadId;
+    if (_hiMode)    body.humanInterrupt  = true;
+    if (_hiMode && !body.threadId) body.threadId = _genThreadId();
+
+    const res = await fetch('/api/v1/support/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || res.statusText); }
+    const data = await res.json();
+
+    if (data.status === 'AWAITING_APPROVAL') {
+      _hiPendingThreadId     = data.threadId;
+      _hiPendingQuery        = query;
+      _hiPendingAdvertiserId = advertiser || null;
+      _hiPendingCampaignId   = campaign   || null;
+      _showApprovalPanel(data.pendingTools || []);
+      return;
+    }
+    _showResult(data, false);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('loading').classList.remove('show');
+  }
+}
+
+var _allTickets = [];
+var _ticketPage = 1;
+var _PAGE_SIZE  = 10;
+
+async function loadTickets() {
+  var tbody = document.getElementById('tickets-body');
+  tbody.innerHTML = '<tr><td colspan="7" style="color:#718096;text-align:center;padding:20px">Loading...</td></tr>';
+  document.getElementById('ticket-pager').style.display = 'none';
+  document.getElementById('ticket-count').textContent = '';
+  try {
+    var res = await fetch('/api/v1/support/tickets');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    _allTickets = await res.json();
+    _ticketPage = 1;
+    _renderTickets();
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:#fc8181;text-align:center;padding:20px">Error: ' + e.message + '</td></tr>';
+  }
+}
+
+function _esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _formatDate(iso) {
+  if (!iso) return '—';
+  try {
+    var s = iso.replace(/(\.\d{3})\d*/, '$1').replace(/Z?$/, 'Z');
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString(undefined, {
+      year:'numeric', month:'short', day:'numeric',
+      hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
+  } catch(e) { return iso; }
+}
+
+function _renderTickets() {
+  var tbody  = document.getElementById('tickets-body');
+  var total  = _allTickets.length;
+  var pager  = document.getElementById('ticket-pager');
+  var count  = document.getElementById('ticket-count');
+
+  if (!total) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:#718096;text-align:center;padding:20px">No tickets yet — submit a query first</td></tr>';
+    pager.style.display = 'none';
+    count.textContent = '0 tickets';
+    return;
+  }
+
+  var start = (_ticketPage - 1) * _PAGE_SIZE;
+  var end   = Math.min(start + _PAGE_SIZE, total);
+  var page  = _allTickets.slice(start, end);
+  var pages = Math.ceil(total / _PAGE_SIZE);
+  var html  = '';
+
+  for (var i = 0; i < page.length; i++) {
+    var t      = page[i];
+    var rowId  = 'tx-' + (start + i);
+    var tools  = t.toolsUsed || [];
+    var ans    = t.answer || '';
+    var preview = ans.replace(/\n/g,' ').substring(0, 120) + (ans.length > 120 ? '...' : '');
+
+    var toolBadges2 = '';
+    for (var j = 0; j < Math.min(tools.length, 2); j++) {
+      toolBadges2 += '<span class="tool-tag' + (tools[j]==='searchKnowledgeBase'?' kb':'') + '">' + tools[j] + '</span> ';
+    }
+    if (tools.length > 2) toolBadges2 += '<span style="color:#718096;font-size:0.72rem">+' + (tools.length-2) + '</span>';
+
+    var toolBadgesAll = '';
+    for (var k = 0; k < tools.length; k++) {
+      toolBadgesAll += '<span class="tool-tag' + (tools[k]==='searchKnowledgeBase'?' kb':'') + '">' + tools[k] + '</span> ';
+    }
+
+    var statusLabel = t.status === 'RESOLVED_BY_AGENT' ? '&#10003; Resolved' : '&#9888; Escalated';
+
+    html += '<tr class="ticket-row" onclick="toggleTicket(\'' + rowId + '\')">';
+    html += '<td style="font-family:monospace;font-size:0.78rem;color:#7f9cf5">' + t.id.substring(0,8) + '...</td>';
+    html += '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(t.query) + '">' + _esc(t.query) + '</td>';
+    html += '<td style="font-family:monospace;color:#a0aec0">' + _esc(t.campaignId || '') + '</td>';
+    html += '<td style="max-width:220px;color:#a0aec0;font-size:0.8rem">' + _esc(preview) + '</td>';
+    html += '<td><span class="status-pill ' + t.status + '" style="font-size:0.7rem">' + statusLabel + '</span></td>';
+    html += '<td style="max-width:160px">' + toolBadges2 + '</td>';
+    html += '<td style="color:#718096;font-size:0.78rem;white-space:nowrap">' + _formatDate(t.createdAt) + '</td>';
+    html += '</tr>';
+    html += '<tr class="ticket-expand" id="' + rowId + '">';
+    html += '<td colspan="7"><div class="ticket-answer">';
+    html += '<div class="ticket-answer-label">Full Answer</div>';
+    html += _esc(ans || '-');
+    html += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">' + toolBadgesAll + '</div>';
+    html += '<div style="margin-top:8px;font-size:0.75rem;color:#4a5568">Ticket ID: ' + t.id + '</div>';
+    html += '</div></td></tr>';
+  }
+
+  tbody.innerHTML = html;
+  count.textContent = total + ' ticket' + (total !== 1 ? 's' : '');
+
+  if (pages <= 1) {
+    pager.style.display = 'none';
+  } else {
+    pager.style.display = 'flex';
+    document.getElementById('pager-info').textContent  = (start+1) + '-' + end + ' of ' + total;
+    document.getElementById('pager-label').textContent = 'Page ' + _ticketPage + ' / ' + pages;
+    document.getElementById('btn-prev').disabled = (_ticketPage === 1);
+    document.getElementById('btn-next').disabled = (_ticketPage === pages);
+  }
+}
+
+function toggleTicket(rowId) {
+  var row = document.getElementById(rowId);
+  if (row) row.classList.toggle('open');
+}
+
+function _goPage(p) {
+  var pages = Math.ceil(_allTickets.length / _PAGE_SIZE);
+  if (p < 1 || p > pages) return;
+  _ticketPage = p;
+  _renderTickets();
+  document.getElementById('page-tickets').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// Health check on load
+(async () => {
+  try {
+    const r = await fetch('/api/v1/support/health-check');
+    const h = await r.json();
+    const badge = document.getElementById('health-badge');
+    badge.textContent = `${h.llmProvider} · ${h.toolsLoaded} tools`;
+    badge.style.background = h.toolsLoaded > 0 ? '#276749' : '#744210';
+    const kb = document.getElementById('kb-badge');
+    kb.textContent = `KB: ${h.kbProvider || 'local'}`;
+    kb.className = `badge ${h.kbProvider === 'gcp' ? 'green' : 'purple'}`;
+  } catch {
+    document.getElementById('health-badge').textContent = 'DOWN';
+  }
+})();
+</script>
+</body>
+</html>

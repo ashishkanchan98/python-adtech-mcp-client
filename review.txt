@@ -1,0 +1,193 @@
+  How to test:
+
+  1. Turn ON Human Interrupt toggle (orange bar)
+  2. Enter query: CMP-4491 not delivering → click Run Agent
+  3. Agent pauses → orange panel shows: getCampaignStatus, getHourlySpendCurve...
+  4. Click Approve → agent runs tools → shows final answer
+  5. Try again, click Reject → agent answers from KB only (no tool calls)
+
+
+
+
+
+Server-Sent Events — a browser/HTTP standard where the server pushes a continuous stream of events to the client over a single long-lived HTTP connection.
+
+  In the MCP context it works like this:
+
+  Client (real-python-adtech-mcp-client)
+          |
+          |  GET http://localhost:8085/sse   ← opens persistent connection
+          |  ←─────────────────────────────  server streams JSON-RPC messages back
+          |  POST http://localhost:8085/messages  ← client sends tool calls
+          |
+  Server (real-python-adtech-mcp-server)
+
+  Why MCP uses SSE instead of plain REST:
+  - The server needs to push responses back asynchronously — SSE is designed for that
+  - One persistent connection vs many round-trip HTTP requests
+  - Standard HTTP (no WebSocket complexity, works through proxies/load balancers)
+
+  vs the old custom HTTP pattern in python-adtech-mcp-server:
+  Old: GET  /mcp/tools           → list of tools (one-shot)
+       POST /mcp/tools/{name}    → call a tool (one-shot per call)
+
+  New: GET  /sse                 → persistent stream (JSON-RPC 2.0)
+       POST /messages            → send requests over the stream
+
+  The langchain-mcp-adapters MultiServerMCPClient handles the SSE connection and JSON-RPC framing automatically — your code just calls client.get_tools() and uses them like normal LangChain tools.
+
+
+
+
+
+
+ 1. LangGraph ReAct Agent ✅ Accurate
+  - graph.py confirms — StateGraph(MessagesState), ToolNode, conditional edges, parallel execution, max_tool_calls guard
+
+  ---
+  2. MCP Integration ⚠️  Needs correction — this is the critical one
+
+  Looking at tools.py:
+  # What the code actually does:
+  GET  /mcp/tools          ← fetch tool definitions
+  POST /mcp/tools/{name}   ← call a tool via plain HTTP
+
+  This is NOT official Anthropic MCP. Official MCP uses:
+  - JSON-RPC 2.0 protocol
+  - stdio or SSE transport
+  - Official SDK (mcp Python package)
+  - initialize → tools/list → tools/call handshake
+
+  What this project actually built:
+  - A custom HTTP-based tool discovery and invocation pattern — client fetches definitions at startup, wraps each as a LangChain StructuredTool, calls over plain REST
+
+  Fix the bullet to:
+
+  ▎ Built a custom tool server pattern — agent dynamically discovers 22 AdTech diagnostic tools from a separate microservice at startup and invokes them over HTTP, decoupling tool execution from agent
+  ▎ orchestration
+
+  ---
+  3. RAG Framework ✅ Accurate
+  - tools.py confirms — ChromaDB + all-MiniLM-L6-v2 local, Vertex AI Search GCP, KB_PROVIDER env switch
+
+  ---
+  4. Multi-turn Memory ✅ Accurate
+  - graph.py confirms — MemorySaver, thread_id in ainvoke config
+
+  ---
+  5. Human-in-the-Loop ⚠️  Not yet in code — only designed
+  - interrupt_before is NOT added to graph.py
+  - /resume endpoint does NOT exist in routes.py
+  - It is documented in Architecture tab but not implemented
+
+  Fix the bullet to:
+
+  ▎ Designed Human-in-the-Loop approval architecture using LangGraph interrupt_before — agent pauses before tool execution pending human approval, resumes from exact checkpoint via Command(resume=...)
+
+  ---
+  6. GCP Cloud Run Deployment ✅ Accurate
+  - config.py and deployment guide confirm — Vertex AI Gemini, Cloud SQL, Secret Manager, ADC
+
+
+
+
+
+
+ Point 2 — Custom HTTP Tool Pattern → Real MCP
+
+  What exists in code:
+  GET  /mcp/tools          → fetch tool list (custom REST)
+  POST /mcp/tools/{name}   → call a tool (custom REST)
+
+  What's missing for official Anthropic MCP:
+
+  ┌───────────────────────┬─────────────────────────────────────────────────────────────────────────────┐
+  │        Missing        │                              What it requires                               │
+  ├───────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ Official MCP SDK      │ pip install mcp — not in requirements.txt                                   │
+  ├───────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ JSON-RPC 2.0 protocol │ replace plain HTTP POST with JSON-RPC envelope                              │
+  ├───────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ SSE / stdio transport │ replace REST with Server-Sent Events or stdio                               │
+  ├───────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ initialize handshake  │ client must negotiate capabilities with server on connect                   │
+  ├───────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ tools/list method     │ replaces GET /mcp/tools                                                     │
+  ├───────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ tools/call method     │ replaces POST /mcp/tools/{name}                                             │
+  ├───────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ MCP server rewrite    │ python-adtech-mcp-server must expose MCP protocol, not plain FastAPI routes │
+  └───────────────────────┴─────────────────────────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+  Shortest path to real MCP:
+  # requirements.txt
+  mcp>=1.0.0
+  langchain-mcp-adapters>=0.1.0   # bridges MCP tools → LangChain StructuredTool
+
+  # tools.py — replace fetch_mcp_tool_definitions + create_mcp_tools with:
+  from langchain_mcp_adapters.client import MultiServerMCPClient
+
+  client = MultiServerMCPClient({"adtech": {"url": "http://localhost:8082/mcp", "transport": "sse"}})
+  tools = await client.get_tools()
+
+  ---
+  Point 5 — Human Interrupt
+
+  What exists in code: nothing — only documented in Architecture tab.
+
+  What's missing:
+
+  graph.py — 1 line:
+  compiled = graph.compile(
+      checkpointer=MemorySaver(),
+      interrupt_before=["tools"]    # ← missing
+  )
+
+  schemas.py — new schema:
+  class ResumeRequest(BaseModel):
+      thread_id: str = Field(..., alias="threadId")
+      approved: bool = True
+      model_config = {"populate_by_name": True}
+
+  routes.py — 2 things missing:
+  # 1. read pending tools after first ainvoke pauses
+  state = await agent.aget_state({"configurable": {"thread_id": effective_thread_id}})
+  pending_tools = [tc["name"] for tc in state.values["messages"][-1].tool_calls]
+  return {"thread_id": effective_thread_id, "status": "AWAITING_APPROVAL", "pending_tools": pending_tools}
+
+  # 2. new /resume endpoint — missing entirely
+  from langgraph.types import Command
+
+  @router.post("/api/v1/support/query/resume")
+  async def resume_query(body: ResumeRequest, request: Request, db: AsyncSession = Depends(get_db)):
+      config = {"configurable": {"thread_id": body.thread_id}}
+      if body.approved:
+          result = await agent.ainvoke(Command(resume=None), config=config)
+      else:
+          result = await agent.ainvoke(
+              Command(resume={"messages": [HumanMessage("Skip tools. Answer from KB only.")]}),
+              config=config
+          )
+
+  index.html + support.html — UI missing:
+  submitQuery() returns AWAITING_APPROVAL
+    → show approval panel with pending tool list
+    → Approve / Reject buttons
+    → resumeQuery(approved) calls POST /query/resume
+    → renders final answer
+
+  ---
+  Summary:
+
+  ┌───────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────┬────────┐
+  │           Point           │                                     Files to change                                     │ Effort │
+  ├───────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Point 2 (real MCP)        │ requirements.txt, tools.py, full server rewrite                                         │ Large  │
+  ├───────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Point 5 (Human Interrupt) │ graph.py (1 line), schemas.py (5 lines), routes.py (1 new endpoint), HTML (approval UI) │ Medium │
+  └───────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────┴────────┘
