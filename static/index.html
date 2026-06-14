@@ -1736,7 +1736,10 @@ curl http://localhost:8080/api/v1/support/health-check | python3 -m json.tool
     <h2>AI Ecosystem — Tool &amp; Framework FAQ</h2>
 
     <div style="background:#0d1117;border:1px solid #553c9a;border-radius:8px;padding:18px;margin-bottom:20px">
-      <div style="font-size:0.75rem;font-weight:700;color:#b794f4;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">CrewAI</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="font-size:0.75rem;font-weight:700;color:#b794f4;text-transform:uppercase;letter-spacing:.08em">CrewAI</div>
+        <button onclick="openCrewAIUseCases()" style="background:#2d1f4e;border:1px solid #553c9a;color:#b794f4;font-size:0.75rem;padding:4px 12px;border-radius:5px;cursor:pointer;font-weight:600;transition:all .2s;white-space:nowrap" onmouseover="this.style.background='#3d2a6e'" onmouseout="this.style.background='#2d1f4e'">AdTech Use Cases &#8594;</button>
+      </div>
       <p style="font-size:0.88rem;line-height:1.75;color:#cbd5e0;margin:0">
         A framework for building <span class="highlight">multi-agent AI systems</span> where agents collaborate like a crew.
         You define roles (Researcher, Writer, Analyst), assign tasks, and agents work together — each with its own tools, memory,
@@ -1819,6 +1822,298 @@ curl http://localhost:8080/api/v1/support/health-check | python3 -m json.tool
       <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span style="color:#93c5fd">OpenTelemetry</span><span style="color:#a0aec0">Standard telemetry for AI observability</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span style="color:#a0aec0">MLflow</span><span style="color:#a0aec0">ML experiment tracking + model registry</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;padding:9px 14px;border-top:1px solid #1e2533;gap:8px"><span class="purple-text">Phoenix (Arize)</span><span style="color:#a0aec0">LLM/RAG evaluation + observability</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CrewAI Use Cases Modal -->
+<div id="crewai-modal" onclick="if(event.target===this)closeCrewAIUseCases()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:1000;overflow-y:auto;padding:20px">
+  <div style="max-width:860px;margin:0 auto;padding-bottom:40px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;position:sticky;top:0;background:rgba(15,17,23,0.95);padding:14px 0;z-index:10;border-bottom:1px solid #2d3748">
+      <div>
+        <div style="font-size:0.72rem;font-weight:700;color:#b794f4;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">CrewAI</div>
+        <div style="font-size:1.05rem;font-weight:700;color:#e2e8f0">AdTech Multi-Agent Use Cases</div>
+      </div>
+      <button onclick="closeCrewAIUseCases()" style="background:none;border:1px solid #334155;color:#a0aec0;font-size:0.88rem;cursor:pointer;padding:6px 14px;border-radius:5px">✕ Close</button>
+    </div>
+
+    <!-- Architecture Summary Banner -->
+    <div style="background:#0d1117;border:1px solid #553c9a;border-radius:8px;padding:16px;margin-bottom:20px;font-family:monospace;font-size:0.78rem;color:#a0aec0;white-space:pre;overflow-x:auto;line-height:1.7"><span style="color:#b794f4;font-weight:700">CrewAI Architecture</span>
+
+                    User Query
+                        │
+                   Triage Agent  ◀── classifies domain
+                        │
+           ┌────────────┼────────────┐
+           ▼            ▼            ▼
+    Campaign       Deal &        Fraud &         ← parallel where possible
+    Analyst        Inventory     Brand Safety
+           │            │            │
+           └────────────┴────────────┘
+                        │
+               Reporting Agent   ◀── cross-domain reconciliation
+                        │
+                  KB Agent        ◀── runbook lookup
+                        │
+                  Final Report   ◀── Triage Agent synthesizes</div>
+
+    <!-- Agent Roster -->
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:10px;padding:20px;margin-bottom:20px">
+      <div style="font-size:0.72rem;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px">Agent Roster — 7 Specialized Agents</div>
+      <div style="overflow-x:auto">
+        <table style="font-size:0.8rem;min-width:640px">
+          <thead>
+            <tr>
+              <th style="color:#b794f4;width:22%">Agent</th>
+              <th style="color:#7f9cf5;width:28%">Role</th>
+              <th style="color:#68d391">Tools Assigned</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:#e2e8f0;font-weight:600">Triage Agent</td>
+              <td style="color:#a0aec0">Reads query, classifies problem domain, delegates</td>
+              <td><span class="tool-tag kb">searchKnowledgeBase</span></td>
+            </tr>
+            <tr>
+              <td style="color:#e2e8f0;font-weight:600">Campaign Analyst</td>
+              <td style="color:#a0aec0">Campaign health, pacing, frequency, spend</td>
+              <td style="display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px">
+                <span class="tool-tag">getCampaignStatus</span>
+                <span class="tool-tag">getPacingSettings</span>
+                <span class="tool-tag">getCampaignFrequencySettings</span>
+                <span class="tool-tag">getHourlySpendCurve</span>
+                <span class="tool-tag">getPerformanceMetrics</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="color:#e2e8f0;font-weight:600">Audience &amp; Creative Agent</td>
+              <td style="color:#a0aec0">Segment readiness + creative compliance</td>
+              <td style="display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px">
+                <span class="tool-tag">getSegmentStatus</span>
+                <span class="tool-tag">getSegmentUploadLog</span>
+                <span class="tool-tag">getCreativeStatus</span>
+                <span class="tool-tag">getCreativeAsset</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="color:#e2e8f0;font-weight:600">Pixel &amp; Attribution Agent</td>
+              <td style="color:#a0aec0">Tracking health, conversion gaps, ITP issues</td>
+              <td style="display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px">
+                <span class="tool-tag">getPixelFireLog</span>
+                <span class="tool-tag">getAttributionWindowSettings</span>
+                <span class="tool-tag">getConversionMatchRate</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="color:#e2e8f0;font-weight:600">Deal &amp; Inventory Agent</td>
+              <td style="color:#a0aec0">PMP deal sync, bid stream, seat IDs</td>
+              <td style="display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px">
+                <span class="tool-tag">getDealStatus</span>
+                <span class="tool-tag">getDealBidStream</span>
+                <span class="tool-tag">getSeatMapping</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="color:#e2e8f0;font-weight:600">Fraud &amp; Brand Safety Agent</td>
+              <td style="color:#a0aec0">IVT spikes, placement quality, blocklists</td>
+              <td style="display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px">
+                <span class="tool-tag">getClickLog</span>
+                <span class="tool-tag">getIVTReport</span>
+                <span class="tool-tag">getBrandSafetySettings</span>
+                <span class="tool-tag">getPlacementReport</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="color:#e2e8f0;font-weight:600">Reporting &amp; Discrepancy Agent</td>
+              <td style="color:#a0aec0">DSP vs GAM gap analysis</td>
+              <td style="display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px">
+                <span class="tool-tag">getDSPImpressionReport</span>
+                <span class="tool-tag">getGAMReport</span>
+                <span class="tool-tag">getDiscrepancyLog</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Use Case 1 -->
+    <div style="background:#0d1117;border:1px solid #553c9a;border-radius:10px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="background:#553c9a;color:#e9d8fd;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:12px">Use Case 1</span>
+        <span style="font-size:0.95rem;font-weight:700;color:#e2e8f0">Campaign Not Delivering</span>
+      </div>
+      <div style="background:#161b22;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a0aec0">
+        <span style="color:#f97316;font-weight:600">Trigger:</span> <span style="color:#cbd5e0">"Campaign CMP-4491 has zero impressions for the past 6 hours"</span>
+      </div>
+      <div style="font-size:0.8rem;color:#718096;margin-bottom:10px"><span style="color:#b794f4;font-weight:600">Why multi-agent?</span> Delivery failure has 6+ root causes across different domains — one agent doing it serially is slow and misses cross-domain correlations.</div>
+      <div style="background:#0a0d14;border-radius:6px;padding:12px 14px;font-family:monospace;font-size:0.78rem;color:#a0aec0;white-space:pre;overflow-x:auto;line-height:1.7;margin-bottom:12px">Triage Agent
+    │
+    ├──▶ Campaign Analyst        (is it paused? budget? bid below floor? pacing?)
+    ├──▶ Audience &amp; Creative     (segment approved? creative disapproved?)
+    └──▶ Deal &amp; Inventory        (if PMP — deal synced? seat ID correct?)
+              │
+              └──▶ Triage Agent synthesizes all findings → Resolution Report</div>
+      <div style="overflow-x:auto">
+        <table style="font-size:0.8rem;min-width:560px">
+          <thead><tr>
+            <th style="color:#b794f4">Agent</th><th>Task</th><th>Output</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="color:#e2e8f0">Triage</td><td style="color:#a0aec0">Classify: budget / bid / creative / segment / deal issue</td><td style="color:#68d391">Domain classification</td></tr>
+            <tr><td style="color:#e2e8f0">Campaign Analyst</td><td style="color:#a0aec0">Check status, pacing mode, hourly spend curve, bid vs floor</td><td style="color:#68d391">Campaign-level issues</td></tr>
+            <tr><td style="color:#e2e8f0">Audience &amp; Creative</td><td style="color:#a0aec0">Check segment size, upload errors, creative review status</td><td style="color:#68d391">Approval blockers</td></tr>
+            <tr><td style="color:#e2e8f0">Deal &amp; Inventory</td><td style="color:#a0aec0">Check deal sync state, bid stream count, seat mapping</td><td style="color:#68d391">Deal-level blockers</td></tr>
+            <tr><td style="color:#e2e8f0">Triage (final)</td><td style="color:#a0aec0">Merge all findings, rank by severity, produce fix steps</td><td style="color:#68d391">Prioritized action plan</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Use Case 2 -->
+    <div style="background:#0d1117;border:1px solid #2d4a6e;border-radius:10px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="background:#2d4a6e;color:#90cdf4;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:12px">Use Case 2</span>
+        <span style="font-size:0.95rem;font-weight:700;color:#e2e8f0">Reporting Discrepancy Investigation</span>
+      </div>
+      <div style="background:#161b22;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a0aec0">
+        <span style="color:#f97316;font-weight:600">Trigger:</span> <span style="color:#cbd5e0">"DSP shows 120K impressions, GAM shows 84K — 30% gap. Which is right?"</span>
+      </div>
+      <div style="font-size:0.8rem;color:#718096;margin-bottom:10px"><span style="color:#63b3ed;font-weight:600">Why multi-agent?</span> Discrepancies have 4 distinct causes (IVT filtering, brand safety, double-counting, latency) that require parallel investigation across different data sources.</div>
+      <div style="background:#0a0d14;border-radius:6px;padding:12px 14px;font-family:monospace;font-size:0.78rem;color:#a0aec0;white-space:pre;overflow-x:auto;line-height:1.7">Reporting Agent ──▶ fetches DSP + GAM reports simultaneously
+        │
+        ├──▶ Fraud &amp; Brand Safety Agent  (IVT filtering eating impressions?)
+        ├──▶ Brand Safety Agent          (domain blocking reducing GAM count?)
+        └──▶ KB Agent                   (search "DSP GAM discrepancy" runbook)
+                    │
+                    └──▶ Reporting Agent reconciles delta → Root Cause Report</div>
+      <div style="margin-top:10px;background:#0d1a2e;border-left:3px solid #63b3ed;border-radius:0 6px 6px 0;padding:10px 14px;font-size:0.8rem;color:#a0aec0">
+        <span style="color:#63b3ed;font-weight:600">Parallel benefit:</span> DSP report fetch, GAM report fetch, IVT check, and brand safety check all run simultaneously — 4× faster than sequential.
+      </div>
+    </div>
+
+    <!-- Use Case 3 -->
+    <div style="background:#0d1117;border:1px solid #7b341e;border-radius:10px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="background:#7b341e;color:#fed7aa;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:12px">Use Case 3</span>
+        <span style="font-size:0.95rem;font-weight:700;color:#e2e8f0">IVT / Fraud Spike</span>
+      </div>
+      <div style="background:#161b22;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a0aec0">
+        <span style="color:#f97316;font-weight:600">Trigger:</span> <span style="color:#cbd5e0">"IVT rate jumped from 3% to 18% on Advertiser ADV-789 overnight. Campaigns still running."</span>
+      </div>
+      <div style="font-size:0.8rem;color:#718096;margin-bottom:10px"><span style="color:#fc8181;font-weight:600">Why multi-agent?</span> Fraud investigation needs click-level forensics AND placement-level audit AND brand safety review simultaneously — classic parallel workload.</div>
+      <div style="background:#0a0d14;border-radius:6px;padding:12px 14px;font-family:monospace;font-size:0.78rem;color:#a0aec0;white-space:pre;overflow-x:auto;line-height:1.7">Fraud &amp; Brand Safety Agent ──▶ Pull click logs + IVT report
+        │
+        ├──▶ Placement Auditor        (which domains/apps spiked?)
+        ├──▶ Brand Safety Inspector   (are blocklists current? vendor active?)
+        └──▶ Campaign Analyst         (should campaigns be paused immediately?)
+                    │
+                    └──▶ Escalation Decision: PAUSE_NOW | MONITOR | SAFE</div>
+      <div style="margin-top:10px;background:#1a0d0d;border-left:3px solid #fc8181;border-radius:0 6px 6px 0;padding:10px 14px;font-size:0.8rem;color:#a0aec0">
+        <span style="color:#fc8181;font-weight:600">Unique CrewAI value:</span> The Escalation agent receives outputs from all other agents and makes a binary risk decision — pause the campaign or not — before reporting to the human.
+      </div>
+    </div>
+
+    <!-- Use Case 4 -->
+    <div style="background:#0d1117;border:1px solid #276749;border-radius:10px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="background:#276749;color:#c6f6d5;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:12px">Use Case 4</span>
+        <span style="font-size:0.95rem;font-weight:700;color:#e2e8f0">PMP Deal Zero Bids</span>
+      </div>
+      <div style="background:#161b22;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a0aec0">
+        <span style="color:#f97316;font-weight:600">Trigger:</span> <span style="color:#cbd5e0">"Deal DEAL-9921 has been live for 48 hours with 0 bid requests"</span>
+      </div>
+      <div style="font-size:0.8rem;color:#718096;margin-bottom:10px"><span style="color:#68d391;font-weight:600">Why multi-agent?</span> Zero-bid PMP deals involve a 3-way handshake between DSP seat, SSP deal, and campaign targeting — each needs a dedicated investigator.</div>
+      <div style="background:#0a0d14;border-radius:6px;padding:12px 14px;font-family:monospace;font-size:0.78rem;color:#a0aec0;white-space:pre;overflow-x:auto;line-height:1.7">Deal &amp; Inventory Agent ──▶ Check deal status + sync state + bid stream
+        │
+        ├──▶ Campaign Analyst    (are campaigns targeting this deal active?)
+        ├──▶ Seat Mapping Agent  (buyer seat ID matches DSP registered seat?)
+        └──▶ KB Agent            (search "PMP zero bids" troubleshooting doc)
+                    │
+                    └──▶ Deal &amp; Inventory Agent → Step-by-step fix checklist</div>
+    </div>
+
+    <!-- Use Case 5 -->
+    <div style="background:#0d1117;border:1px solid #744210;border-radius:10px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="background:#744210;color:#feebc8;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:12px">Use Case 5</span>
+        <span style="font-size:0.95rem;font-weight:700;color:#e2e8f0">Pixel &amp; Conversion Attribution Drop</span>
+      </div>
+      <div style="background:#161b22;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a0aec0">
+        <span style="color:#f97316;font-weight:600">Trigger:</span> <span style="color:#cbd5e0">"Conversion tracking dropped 75% after iOS 17 update. Pixel still fires but no conversions attributed."</span>
+      </div>
+      <div style="font-size:0.8rem;color:#718096;margin-bottom:10px"><span style="color:#f6ad55;font-weight:600">Why multi-agent?</span> Attribution failures are multi-layer: pixel fires OK → cookie matching breaks → attribution window mismatch → ITP interference. Each layer needs a specialist.</div>
+      <div style="background:#0a0d14;border-radius:6px;padding:12px 14px;font-family:monospace;font-size:0.78rem;color:#a0aec0;white-space:pre;overflow-x:auto;line-height:1.7">Pixel &amp; Attribution Agent ──▶ Check pixel fire log + attribution windows
+        │
+        ├──▶ Match Rate Analyzer      (cookie/device ID match rate &lt;30%?)
+        ├──▶ KB Agent                 (search "ITP pixel attribution" doc)
+        └──▶ Campaign Analyst         (are view-through conversions enabled?)
+                    │
+                    └──▶ Pixel Agent → Mitigation Plan (server-side tagging / first-party)</div>
+    </div>
+
+    <!-- Use Case 6 -->
+    <div style="background:#0d1117;border:1px solid #4c51bf;border-radius:10px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="background:#4c51bf;color:#e9d8fd;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:12px">Use Case 6</span>
+        <span style="font-size:0.95rem;font-weight:700;color:#e2e8f0">Pre-Launch Campaign Audit</span>
+        <span style="background:#0d2318;border:1px solid #276749;color:#68d391;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px">Parallel Sweep</span>
+      </div>
+      <div style="background:#161b22;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a0aec0">
+        <span style="color:#f97316;font-weight:600">Trigger:</span> <span style="color:#cbd5e0">"Audit campaign CMP-5500 before it goes live tomorrow"</span>
+      </div>
+      <div style="font-size:0.8rem;color:#718096;margin-bottom:10px"><span style="color:#7f9cf5;font-weight:600">Why multi-agent?</span> Full audit = 6 independent checks. Running them all in parallel via CrewAI cuts audit time from ~60s to ~15s.</div>
+      <div style="background:#0a0d14;border-radius:6px;padding:12px 14px;font-family:monospace;font-size:0.78rem;color:#a0aec0;white-space:pre;overflow-x:auto;line-height:1.7">All agents fire in PARALLEL:
+├──▶ Campaign Analyst         → pacing set? budget sufficient? bid above floor?
+├──▶ Audience &amp; Creative      → segment approved? creative not disapproved?
+├──▶ Pixel &amp; Attribution      → pixel firing? attribution window configured?
+├──▶ Deal &amp; Inventory         → if PMP — deal synced? seat ID valid?
+├──▶ Fraud &amp; Brand Safety     → brand safety tier set? blocklists active?
+└──▶ KB Agent                 → search "campaign delivery checklist"
+              │
+              └──▶ Triage Agent → GO / NO-GO with checklist report</div>
+      <div style="margin-top:12px;background:#0a0d14;border-radius:6px;padding:12px 14px;font-family:monospace;font-size:0.78rem;line-height:1.9">
+        <div><span style="color:#68d391">✅</span> <span style="color:#a0aec0">Campaign status: ACTIVE, budget $5,000, bid $2.10 &gt; floor $1.80</span></div>
+        <div><span style="color:#68d391">✅</span> <span style="color:#a0aec0">Creative: APPROVED, 300x250 + 728x90 both live</span></div>
+        <div><span style="color:#fc8181">❌</span> <span style="color:#a0aec0">Segment: CMP-5500-SEG size = 0 — upload not complete</span></div>
+        <div><span style="color:#f6e05e">⚠️</span>  <span style="color:#a0aec0">Pixel: firing but match rate 22% (ITP risk)</span></div>
+        <div><span style="color:#68d391">✅</span> <span style="color:#a0aec0">Brand Safety: Tier 3, IAS active</span></div>
+        <div style="margin-top:6px"><span style="color:#fc8181;font-weight:700">→  NO-GO:</span> <span style="color:#e2e8f0">Fix segment upload before launch</span></div>
+      </div>
+    </div>
+
+    <!-- Use Case 7 -->
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:10px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="background:#2d3748;color:#e2e8f0;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:12px">Use Case 7</span>
+        <span style="font-size:0.95rem;font-weight:700;color:#e2e8f0">Budget Pacing Optimization</span>
+      </div>
+      <div style="background:#161b22;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a0aec0">
+        <span style="color:#f97316;font-weight:600">Trigger:</span> <span style="color:#cbd5e0">"Campaign is burning 80% of daily budget by 10am every day"</span>
+      </div>
+      <div style="font-size:0.8rem;color:#718096;margin-bottom:10px"><span style="color:#a0aec0;font-weight:600">Why multi-agent?</span> Overpacing is a symptom — the root cause could be frequency cap, bid strategy, audience size, or pacing mode. Needs a Performance analyst + Pacing analyst working together.</div>
+      <div style="background:#0a0d14;border-radius:6px;padding:12px 14px;font-family:monospace;font-size:0.78rem;color:#a0aec0;white-space:pre;overflow-x:auto;line-height:1.7">Campaign Analyst ──▶ hourly spend curve + pacing mode + frequency settings
+        │
+        ├──▶ Audience Agent     (audience size too small = rapid exhaustion)
+        └──▶ Performance Agent  (CTR/ROAS — is overpacing hurting efficiency?)
+                    │
+                    └──▶ Campaign Analyst → Bid + frequency + pacing recommendations</div>
+    </div>
+
+    <!-- Sequential vs Parallel summary -->
+    <div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:16px">
+      <div style="font-size:0.72rem;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">Execution Patterns</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.8rem">
+        <div style="background:#0a0d14;border:1px solid #1e2533;border-radius:6px;padding:12px">
+          <div style="color:#fc8181;font-weight:700;margin-bottom:8px">Sequential (must wait)</div>
+          <div style="color:#a0aec0;line-height:1.8">Triage → domain agents<br>→ reconciliation → KB lookup<br>→ final report</div>
+        </div>
+        <div style="background:#0a0d14;border:1px solid #1e2533;border-radius:6px;padding:12px">
+          <div style="color:#68d391;font-weight:700;margin-bottom:8px">Parallel (fire together)</div>
+          <div style="color:#a0aec0;line-height:1.8">Campaign + Audience<br>+ Creative + Pixel checks<br>(Use Cases 1, 6)</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1995,7 +2290,22 @@ function closeDiagram() {
   document.getElementById('diag-tooltip').style.display = 'none';
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDiagram(); });
+function openCrewAIUseCases() {
+  document.getElementById('crewai-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCrewAIUseCases() {
+  document.getElementById('crewai-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDiagram();
+    closeCrewAIUseCases();
+  }
+});
 
 // Ctrl/Cmd + wheel to zoom inside modal
 document.getElementById('modal-body').addEventListener('wheel', e => {

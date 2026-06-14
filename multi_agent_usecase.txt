@@ -1,0 +1,194 @@
+Agent Roster (7 Specialized Agents)
+
+  ┌───────────────────────────────┬───────────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │             Agent             │                       Role                        │                                                 Tools Assigned                                                 │
+  ├───────────────────────────────┼───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Triage Agent                  │ Reads query, classifies problem domain, delegates │ searchKnowledgeBase                                                                                            │
+  ├───────────────────────────────┼───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Campaign Analyst              │ Campaign health, pacing, frequency, spend         │ getCampaignStatus, getPacingSettings, getCampaignFrequencySettings, getHourlySpendCurve, getPerformanceMetrics │
+  ├───────────────────────────────┼───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Audience & Creative Agent     │ Segment readiness + creative compliance           │ getSegmentStatus, getSegmentUploadLog, getCreativeStatus, getCreativeAsset                                     │
+  ├───────────────────────────────┼───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Pixel & Attribution Agent     │ Tracking health, conversion gaps, ITP issues      │ getPixelFireLog, getAttributionWindowSettings, getConversionMatchRate                                          │
+  ├───────────────────────────────┼───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Deal & Inventory Agent        │ PMP deal sync, bid stream, seat IDs               │ getDealStatus, getDealBidStream, getSeatMapping                                                                │
+  ├───────────────────────────────┼───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Fraud & Brand Safety Agent    │ IVT spikes, placement quality, blocklists         │ getClickLog, getIVTReport, getBrandSafetySettings, getPlacementReport                                          │
+  ├───────────────────────────────┼───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Reporting & Discrepancy Agent │ DSP vs GAM gap analysis                           │ getDSPImpressionReport, getGAMReport, getDiscrepancyLog                                                        │
+  └───────────────────────────────┴───────────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+
+ Use Case 1 — Campaign Not Delivering
+  
+  Trigger: "Campaign CMP-4491 has zero impressions for the past 6 hours"
+
+  Why multi-agent? Delivery failure has 6+ root causes across different domains — one agent doing it serially is slow and misses cross-domain correlations.
+
+  Triage Agent
+      │
+      ├──▶ Campaign Analyst        (is it paused? budget? bid below floor? pacing?)
+      ├──▶ Audience & Creative     (segment approved? creative disapproved?)
+      └──▶ Deal & Inventory        (if PMP — deal synced? seat ID correct?)
+                │
+                └──▶ Triage Agent synthesizes all findings → Resolution Report
+
+  Agent Tasks:
+
+  ┌─────────────────────┬─────────────────────────────────────────────────────────────┬───────────────────────────────┐
+  │        Agent        │                            Task                             │            Output             │
+  ├─────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────────────────┤
+  │ Triage              │ Classify: budget / bid / creative / segment / deal issue    │ Domain classification         │
+  ├─────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────────────────┤
+  │ Campaign Analyst    │ Check status, pacing mode, hourly spend curve, bid vs floor │ List of campaign-level issues │
+  ├─────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────────────────┤
+  │ Audience & Creative │ Check segment size, upload errors, creative review status   │ Approval blockers             │
+  ├─────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────────────────┤
+  │ Deal & Inventory    │ Check deal sync state, bid stream count, seat mapping       │ Deal-level blockers           │
+  ├─────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────────────────┤
+  │ Triage (final)      │ Merge all findings, rank by severity, produce fix steps     │ Prioritized action plan       │
+  └─────────────────────┴─────────────────────────────────────────────────────────────┴───────────────────────────────┘
+
+  ---
+  Use Case 2 — Reporting Discrepancy Investigation
+  
+  Trigger: "DSP shows 120K impressions, GAM shows 84K — 30% gap. Which is right?"
+
+  Why multi-agent? Discrepancies have 4 distinct causes (IVT filtering, brand safety, double-counting, latency) that require parallel investigation across different data sources.
+
+  Reporting Agent ──▶ fetches DSP + GAM reports simultaneously
+          │
+          ├──▶ Fraud & Brand Safety Agent  (IVT filtering eating impressions?)
+          ├──▶ Brand Safety Agent          (domain blocking reducing GAM count?)
+          └──▶ KB Agent                   (search "DSP GAM discrepancy" runbook)
+                      │
+                      └──▶ Reporting Agent reconciles delta → Root Cause Report
+
+  Parallel execution benefit: DSP report fetch, GAM report fetch, IVT check, and brand safety check all run simultaneously — 4× faster than sequential.
+
+  ---
+  Use Case 3 — IVT / Fraud Spike
+  
+  Trigger: "IVT rate jumped from 3% to 18% on Advertiser ADV-789 overnight. Campaigns still running."
+
+  Why multi-agent? Fraud investigation needs click-level forensics AND placement-level audit AND brand safety review simultaneously — classic parallel workload.
+
+  Fraud & Brand Safety Agent ──▶ Pull click logs + IVT report
+          │
+          ├──▶ Placement Auditor        (which domains/apps spiked?)
+          ├──▶ Brand Safety Inspector   (are blocklists current? vendor active?)
+          └──▶ Campaign Analyst         (should campaigns be paused immediately?)
+                      │
+                      └──▶ Escalation Decision: PAUSE_NOW | MONITOR | SAFE
+
+  Unique CrewAI value: The Escalation agent receives outputs from all other agents and makes a binary risk decision — pause the campaign or not — before reporting to the human.
+
+  ---
+  Use Case 4 — PMP Deal Zero Bids
+  
+  Trigger: "Deal DEAL-9921 has been live for 48 hours with 0 bid requests"
+
+  Why multi-agent? Zero-bid PMP deals involve a 3-way handshake between DSP seat, SSP deal, and campaign targeting — each needs a dedicated investigator.
+
+  Deal & Inventory Agent ──▶ Check deal status + sync state + bid stream
+          │
+          ├──▶ Campaign Analyst    (are campaigns targeting this deal active?)
+          ├──▶ Seat Mapping Agent  (buyer seat ID matches DSP registered seat?)
+          └──▶ KB Agent            (search "PMP zero bids" troubleshooting doc)
+                      │
+                      └──▶ Deal & Inventory Agent → Step-by-step fix checklist
+
+  ---
+  Use Case 5 — Pixel & Conversion Attribution Drop
+  
+  Trigger: "Conversion tracking dropped 75% after iOS 17 update. Pixel still fires but no conversions attributed."
+
+  Why multi-agent? Attribution failures are multi-layer: pixel fires OK → cookie matching breaks → attribution window mismatch → ITP interference. Each layer needs a specialist.
+
+  Pixel & Attribution Agent ──▶ Check pixel fire log + attribution windows
+          │
+          ├──▶ Match Rate Analyzer      (cookie/device ID match rate <30%?)
+          ├──▶ KB Agent                 (search "ITP pixel attribution" doc)
+          └──▶ Campaign Analyst         (are view-through conversions enabled?)
+                      │
+                      └──▶ Pixel Agent → Mitigation Plan (server-side tagging / first-party)
+
+  ---
+  Use Case 6 — Pre-Launch Campaign Audit (Parallel Sweep)
+  
+  Trigger: "Audit campaign CMP-5500 before it goes live tomorrow"
+
+  Why multi-agent? Full audit = 6 independent checks. Running them all in parallel via CrewAI cuts audit time from ~60s to ~15s.
+
+  All agents fire in PARALLEL:
+  ├──▶ Campaign Analyst         → pacing set? budget sufficient? bid above floor?
+  ├──▶ Audience & Creative      → segment approved? creative not disapproved?
+  ├──▶ Pixel & Attribution      → pixel firing? attribution window configured?
+  ├──▶ Deal & Inventory         → if PMP — deal synced? seat ID valid?
+  ├──▶ Fraud & Brand Safety     → brand safety tier set? blocklists active?
+  └──▶ KB Agent                 → search "campaign delivery checklist"
+                │
+                └──▶ Triage Agent → GO / NO-GO with checklist report
+
+  Output format:
+  ✅ Campaign status: ACTIVE, budget $5,000, bid $2.10 > floor $1.80
+  ✅ Creative: APPROVED, 300x250 + 728x90 both live
+  ❌ Segment: CMP-5500-SEG size = 0 — upload not complete
+  ⚠️   Pixel: firing but match rate 22% (ITP risk)
+  ✅ Brand Safety: Tier 3, IAS active
+  →  NO-GO: Fix segment upload before launch
+
+  ---
+  Use Case 7 — Budget Pacing Optimization
+  
+  Trigger: "Campaign is burning 80% of daily budget by 10am every day"
+
+  Why multi-agent? Overpacing is a symptom — the root cause could be frequency cap, bid strategy, audience size, or pacing mode. Needs a Performance analyst + Pacing analyst working together.
+
+  Campaign Analyst ──▶ hourly spend curve + pacing mode + frequency settings
+          │
+          ├──▶ Audience Agent     (audience size too small = rapid exhaustion)
+          └──▶ Performance Agent  (CTR/ROAS — is overpacing hurting efficiency?)
+                      │
+                      └──▶ Campaign Analyst → Bid + frequency + pacing recommendations
+
+  ---
+  CrewAI Architecture Summary
+
+                      User Query
+                          │
+                     Triage Agent  ◀── classifies domain
+                          │
+             ┌────────────┼────────────┐
+             ▼            ▼            ▼
+      Campaign       Deal &        Fraud &         ← parallel where possible
+      Analyst        Inventory     Brand Safety
+             │            │            │
+             └────────────┴────────────┘
+                          │
+                 Reporting Agent   ◀── cross-domain reconciliation
+                          │
+                    KB Agent        ◀── runbook lookup
+                          │
+                    Final Report   ◀── Triage Agent synthesizes
+
+  Sequential tasks (must wait): Triage → domain agents → reconciliation → KB lookup → final report
+
+  Parallel tasks (fire together): Campaign check + Audience check + Creative check + Pixel check in Use Cases 1, 6
+
+  ---
+  Should I build it?
+  
+  This would be a new project crewai-adtech-mcp-client that:
+  - Connects to real-python-adtech-mcp-server via MCPServerAdapter
+  - Implements all 7 agents + the 7 use cases above
+  - Routes incoming queries to the right crew automatically
+  - Has a FastAPI frontend matching your existing client pattern
+
+  Want me to go ahead and build it?
+
